@@ -11,10 +11,10 @@ namespace Enterprise.Models
         public int ClienteId { get; set; }
         public DateTime Data { get; set; } = DateTime.Now;
         public DateTime? DataValidade { get; set; }
-        public string? LocalObra { get; set; }
+        public string? Descricao { get; set; }
         public string? Observacoes { get; set; }
         public decimal Iva { get; set; } = 16;
-        public string Estado { get; set; } = "Pendente";
+        
         public DateTime CriadoEm { get; set; }
 
         public List<ItemDocumento> Itens { get; set; } = new List<ItemDocumento>();

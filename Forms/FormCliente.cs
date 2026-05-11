@@ -43,7 +43,7 @@ namespace Enterprise.Forms
             try
             {
                 string filtro = txtFiltro.Text;
-                if (filtro == "🔍 Pesquisar por nome, NUIT ou telefone...")
+                if (filtro == "🔍 Pesquisar por nome...")
                     filtro = "";
 
                 var lista = AppDataConnection.GetClientes(filtro);
@@ -152,12 +152,14 @@ namespace Enterprise.Forms
                 return;
             }
 
-            if (MessageBox.Show($"Apagar '{_clienteSelecionado.Nome}'?", "Confirmar",
-                MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            if (MessageBox.Show($"Tem certeza que deseja apagar o cliente '{_clienteSelecionado.Nome}'?",
+                "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
                 try
                 {
                     AppDataConnection.ApagarCliente(_clienteSelecionado.Id);
+                    MessageBox.Show("Cliente apagado com sucesso!", "Sucesso",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                     LimparFormulario();
                     CarregarClientes();
                 }
@@ -179,7 +181,7 @@ namespace Enterprise.Forms
 
         private void txtFiltro_TextChanged(object sender, EventArgs e)
         {
-            if (txtFiltro.Text != "🔍 Pesquisar por nome, NUIT ou telefone...")
+            if (txtFiltro.Text != "🔍 Pesquisar por nome...")
                 CarregarClientes();
         }
 
@@ -190,9 +192,6 @@ namespace Enterprise.Forms
             base.Dispose(disposing);
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // APLICAR ESTILOS CUSTOMIZADOS (chamado após InitializeComponent)
-        // ═══════════════════════════════════════════════════════════
         private void AplicarEstilosCustomizados()
         {
             this.BackColor = Color.White;
@@ -208,21 +207,23 @@ namespace Enterprise.Forms
             btnApagar.FillColor = Color.FromArgb(255, 59, 48);
             btnApagar.ForeColor = Color.White;
             btnApagar.Font = new Font("Segoe UI Semibold", 10);
+
+            // Adicionar eventos
+            btnNovo.Click += btnNovo_Click;
+            btnSalvar.Click += btnSalvar_Click;
+            btnApagar.Click += btnApagar_Click;
+            dgvClientes.CellClick += dgvClientes_CellClick;
+            txtFiltro.TextChanged += txtFiltro_TextChanged;
         }
 
         // ═══════════════════════════════════════════════════════════
-        // INITIALIZE COMPONENT - FORMATO DESIGNER SAFE
+        // INITIALIZE COMPONENT
         // ═══════════════════════════════════════════════════════════
-        // NOTA: Mantenha este método SIMPLES. Não use métodos helper,
-        // expressões complexas, ou operadores ?? aqui.
-        // O Designer do VS analisa este método e falha com código avançado.
-        // ═══════════════════════════════════════════════════════════
-
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle5 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle6 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
             this.txtNome = new Guna.UI2.WinForms.Guna2TextBox();
             this.txtFiltro = new Guna.UI2.WinForms.Guna2TextBox();
             this.cmbTipo = new Guna.UI2.WinForms.Guna2ComboBox();
@@ -248,7 +249,7 @@ namespace Enterprise.Forms
             // 
             // txtNome
             // 
-            this.txtNome.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(200)))));
+            this.txtNome.BorderColor = System.Drawing.Color.FromArgb(200, 200, 200);
             this.txtNome.BorderRadius = 6;
             this.txtNome.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtNome.DefaultText = "";
@@ -262,14 +263,14 @@ namespace Enterprise.Forms
             // 
             // txtFiltro
             // 
-            this.txtFiltro.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(200)))));
+            this.txtFiltro.BorderColor = System.Drawing.Color.FromArgb(200, 200, 200);
             this.txtFiltro.BorderRadius = 8;
             this.txtFiltro.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtFiltro.DefaultText = "";
             this.txtFiltro.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.txtFiltro.Location = new System.Drawing.Point(20, 66);
             this.txtFiltro.Name = "txtFiltro";
-            this.txtFiltro.PlaceholderText = "🔍 Pesquisar por nome, NUIT ou telefone...";
+            this.txtFiltro.PlaceholderText = "🔍 Pesquisar por nome...";
             this.txtFiltro.SelectedText = "";
             this.txtFiltro.Size = new System.Drawing.Size(830, 41);
             this.txtFiltro.TabIndex = 2;
@@ -277,17 +278,15 @@ namespace Enterprise.Forms
             // cmbTipo
             // 
             this.cmbTipo.BackColor = System.Drawing.Color.Transparent;
-            this.cmbTipo.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(200)))));
+            this.cmbTipo.BorderColor = System.Drawing.Color.FromArgb(200, 200, 200);
             this.cmbTipo.BorderRadius = 6;
             this.cmbTipo.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.cmbTipo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbTipo.FocusedColor = System.Drawing.Color.Empty;
             this.cmbTipo.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.cmbTipo.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(68)))), ((int)(((byte)(88)))), ((int)(((byte)(112)))));
+            this.cmbTipo.ForeColor = System.Drawing.Color.FromArgb(68, 88, 112);
             this.cmbTipo.ItemHeight = 30;
-            this.cmbTipo.Items.AddRange(new object[] {
-            "Particular",
-            "Empresa"});
+            this.cmbTipo.Items.AddRange(new object[] { "Particular", "Empresa" });
             this.cmbTipo.Location = new System.Drawing.Point(20, 185);
             this.cmbTipo.Name = "cmbTipo";
             this.cmbTipo.Size = new System.Drawing.Size(360, 36);
@@ -296,27 +295,27 @@ namespace Enterprise.Forms
             // dgvClientes
             // 
             this.dgvClientes.AllowUserToAddRows = false;
-            dataGridViewCellStyle4.BackColor = System.Drawing.Color.White;
-            this.dgvClientes.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle4;
-            dataGridViewCellStyle5.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(25)))), ((int)(((byte)(40)))));
-            dataGridViewCellStyle5.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            dataGridViewCellStyle5.ForeColor = System.Drawing.Color.White;
-            dataGridViewCellStyle5.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle5.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle5.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dgvClientes.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle5;
+            dataGridViewCellStyle1.BackColor = System.Drawing.Color.White;
+            this.dgvClientes.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = System.Drawing.Color.FromArgb(25, 25, 40);
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Segoe UI", 9F);
+            dataGridViewCellStyle2.ForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgvClientes.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle2;
             this.dgvClientes.ColumnHeadersHeight = 38;
-            dataGridViewCellStyle6.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle6.BackColor = System.Drawing.Color.White;
-            dataGridViewCellStyle6.Font = new System.Drawing.Font("Segoe UI", 9F);
-            dataGridViewCellStyle6.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
-            dataGridViewCellStyle6.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(231)))), ((int)(((byte)(229)))), ((int)(((byte)(255)))));
-            dataGridViewCellStyle6.SelectionForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
-            dataGridViewCellStyle6.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.dgvClientes.DefaultCellStyle = dataGridViewCellStyle6;
+            dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle3.BackColor = System.Drawing.Color.White;
+            dataGridViewCellStyle3.Font = new System.Drawing.Font("Segoe UI", 9F);
+            dataGridViewCellStyle3.ForeColor = System.Drawing.Color.FromArgb(71, 69, 94);
+            dataGridViewCellStyle3.SelectionBackColor = System.Drawing.Color.FromArgb(231, 229, 255);
+            dataGridViewCellStyle3.SelectionForeColor = System.Drawing.Color.FromArgb(71, 69, 94);
+            dataGridViewCellStyle3.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.dgvClientes.DefaultCellStyle = dataGridViewCellStyle3;
             this.dgvClientes.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.dgvClientes.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(230)))), ((int)(((byte)(230)))));
+            this.dgvClientes.GridColor = System.Drawing.Color.FromArgb(230, 230, 230);
             this.dgvClientes.Location = new System.Drawing.Point(20, 123);
             this.dgvClientes.MultiSelect = false;
             this.dgvClientes.Name = "dgvClientes";
@@ -325,32 +324,11 @@ namespace Enterprise.Forms
             this.dgvClientes.RowTemplate.Height = 38;
             this.dgvClientes.Size = new System.Drawing.Size(830, 555);
             this.dgvClientes.TabIndex = 3;
-            this.dgvClientes.ThemeStyle.AlternatingRowsStyle.BackColor = System.Drawing.Color.White;
-            this.dgvClientes.ThemeStyle.AlternatingRowsStyle.Font = null;
-            this.dgvClientes.ThemeStyle.AlternatingRowsStyle.ForeColor = System.Drawing.Color.Empty;
-            this.dgvClientes.ThemeStyle.AlternatingRowsStyle.SelectionBackColor = System.Drawing.Color.Empty;
-            this.dgvClientes.ThemeStyle.AlternatingRowsStyle.SelectionForeColor = System.Drawing.Color.Empty;
-            this.dgvClientes.ThemeStyle.BackColor = System.Drawing.Color.White;
-            this.dgvClientes.ThemeStyle.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(230)))), ((int)(((byte)(230)))));
-            this.dgvClientes.ThemeStyle.HeaderStyle.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(25)))), ((int)(((byte)(40)))));
-            this.dgvClientes.ThemeStyle.HeaderStyle.BorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
-            this.dgvClientes.ThemeStyle.HeaderStyle.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.dgvClientes.ThemeStyle.HeaderStyle.ForeColor = System.Drawing.Color.White;
-            this.dgvClientes.ThemeStyle.HeaderStyle.HeaightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            this.dgvClientes.ThemeStyle.HeaderStyle.Height = 38;
-            this.dgvClientes.ThemeStyle.ReadOnly = true;
-            this.dgvClientes.ThemeStyle.RowsStyle.BackColor = System.Drawing.Color.White;
-            this.dgvClientes.ThemeStyle.RowsStyle.BorderStyle = System.Windows.Forms.DataGridViewCellBorderStyle.SingleHorizontal;
-            this.dgvClientes.ThemeStyle.RowsStyle.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.dgvClientes.ThemeStyle.RowsStyle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
-            this.dgvClientes.ThemeStyle.RowsStyle.Height = 38;
-            this.dgvClientes.ThemeStyle.RowsStyle.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(231)))), ((int)(((byte)(229)))), ((int)(((byte)(255)))));
-            this.dgvClientes.ThemeStyle.RowsStyle.SelectionForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
             // 
             // btnSalvar
             // 
             this.btnSalvar.BorderRadius = 8;
-            this.btnSalvar.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(199)))), ((int)(((byte)(89)))));
+            this.btnSalvar.FillColor = System.Drawing.Color.FromArgb(52, 199, 89);
             this.btnSalvar.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
             this.btnSalvar.ForeColor = System.Drawing.Color.White;
             this.btnSalvar.Location = new System.Drawing.Point(139, 249);
@@ -362,7 +340,7 @@ namespace Enterprise.Forms
             // btnNovo
             // 
             this.btnNovo.BorderRadius = 8;
-            this.btnNovo.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.btnNovo.FillColor = System.Drawing.Color.FromArgb(100, 100, 120);
             this.btnNovo.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
             this.btnNovo.ForeColor = System.Drawing.Color.White;
             this.btnNovo.Location = new System.Drawing.Point(20, 249);
@@ -374,7 +352,7 @@ namespace Enterprise.Forms
             // btnApagar
             // 
             this.btnApagar.BorderRadius = 8;
-            this.btnApagar.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(59)))), ((int)(((byte)(48)))));
+            this.btnApagar.FillColor = System.Drawing.Color.FromArgb(255, 59, 48);
             this.btnApagar.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
             this.btnApagar.ForeColor = System.Drawing.Color.White;
             this.btnApagar.Location = new System.Drawing.Point(270, 249);
@@ -407,7 +385,7 @@ namespace Enterprise.Forms
             // 
             // panelForm
             // 
-            this.panelForm.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(224)))), ((int)(((byte)(230)))));
+            this.panelForm.BorderColor = System.Drawing.Color.FromArgb(220, 224, 230);
             this.panelForm.BorderRadius = 10;
             this.panelForm.BorderThickness = 1;
             this.panelForm.Controls.Add(this.lblTitulo);
@@ -419,7 +397,7 @@ namespace Enterprise.Forms
             this.panelForm.Controls.Add(this.btnNovo);
             this.panelForm.Controls.Add(this.btnSalvar);
             this.panelForm.Controls.Add(this.btnApagar);
-            this.panelForm.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
+            this.panelForm.FillColor = System.Drawing.Color.FromArgb(250, 250, 252);
             this.panelForm.Location = new System.Drawing.Point(23, 20);
             this.panelForm.Name = "panelForm";
             this.panelForm.Size = new System.Drawing.Size(400, 720);
@@ -428,7 +406,7 @@ namespace Enterprise.Forms
             // lblTitulo
             // 
             this.lblTitulo.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
-            this.lblTitulo.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(45)))));
+            this.lblTitulo.ForeColor = System.Drawing.Color.FromArgb(30, 30, 45);
             this.lblTitulo.Location = new System.Drawing.Point(20, 15);
             this.lblTitulo.Name = "lblTitulo";
             this.lblTitulo.Size = new System.Drawing.Size(360, 25);
@@ -437,7 +415,7 @@ namespace Enterprise.Forms
             // 
             // linha
             // 
-            this.linha.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(255)))));
+            this.linha.FillColor = System.Drawing.Color.FromArgb(0, 122, 255);
             this.linha.Location = new System.Drawing.Point(20, 45);
             this.linha.Name = "linha";
             this.linha.Size = new System.Drawing.Size(360, 2);
@@ -446,7 +424,7 @@ namespace Enterprise.Forms
             // lblNome
             // 
             this.lblNome.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
-            this.lblNome.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.lblNome.ForeColor = System.Drawing.Color.FromArgb(100, 100, 120);
             this.lblNome.Location = new System.Drawing.Point(20, 60);
             this.lblNome.Name = "lblNome";
             this.lblNome.Size = new System.Drawing.Size(360, 18);
@@ -456,7 +434,7 @@ namespace Enterprise.Forms
             // lblTipo
             // 
             this.lblTipo.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
-            this.lblTipo.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.lblTipo.ForeColor = System.Drawing.Color.FromArgb(100, 100, 120);
             this.lblTipo.Location = new System.Drawing.Point(20, 154);
             this.lblTipo.Name = "lblTipo";
             this.lblTipo.Size = new System.Drawing.Size(360, 18);
@@ -465,7 +443,7 @@ namespace Enterprise.Forms
             // 
             // panelGrid
             // 
-            this.panelGrid.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(224)))), ((int)(((byte)(230)))));
+            this.panelGrid.BorderColor = System.Drawing.Color.FromArgb(220, 224, 230);
             this.panelGrid.BorderRadius = 10;
             this.panelGrid.BorderThickness = 1;
             this.panelGrid.Controls.Add(this.lblListaTitulo);
@@ -473,7 +451,7 @@ namespace Enterprise.Forms
             this.panelGrid.Controls.Add(this.txtFiltro);
             this.panelGrid.Controls.Add(this.dgvClientes);
             this.panelGrid.Controls.Add(this.lblTotal);
-            this.panelGrid.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
+            this.panelGrid.FillColor = System.Drawing.Color.FromArgb(250, 250, 252);
             this.panelGrid.Location = new System.Drawing.Point(440, 20);
             this.panelGrid.Name = "panelGrid";
             this.panelGrid.Size = new System.Drawing.Size(870, 720);
@@ -482,7 +460,7 @@ namespace Enterprise.Forms
             // lblListaTitulo
             // 
             this.lblListaTitulo.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
-            this.lblListaTitulo.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(45)))));
+            this.lblListaTitulo.ForeColor = System.Drawing.Color.FromArgb(30, 30, 45);
             this.lblListaTitulo.Location = new System.Drawing.Point(20, 15);
             this.lblListaTitulo.Name = "lblListaTitulo";
             this.lblListaTitulo.Size = new System.Drawing.Size(300, 25);
@@ -491,7 +469,7 @@ namespace Enterprise.Forms
             // 
             // linhaGrid
             // 
-            this.linhaGrid.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(255)))));
+            this.linhaGrid.FillColor = System.Drawing.Color.FromArgb(0, 122, 255);
             this.linhaGrid.Location = new System.Drawing.Point(20, 45);
             this.linhaGrid.Name = "linhaGrid";
             this.linhaGrid.Size = new System.Drawing.Size(830, 2);
@@ -511,7 +489,6 @@ namespace Enterprise.Forms
             this.panelForm.ResumeLayout(false);
             this.panelGrid.ResumeLayout(false);
             this.ResumeLayout(false);
-
         }
     }
 }

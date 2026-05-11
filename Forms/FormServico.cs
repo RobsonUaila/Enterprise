@@ -5,7 +5,6 @@
 using Guna.UI2.WinForms;
 using System;
 using System.Drawing;
-using System.Globalization;
 using System.Windows.Forms;
 using Enterprise.Data;
 using Enterprise.Models;
@@ -30,13 +29,13 @@ namespace Enterprise.Forms
         private Guna2Button btnNovo;
         private Guna2Button btnApagar;
         private Guna2Panel panelForm;
+        private Guna2Panel panelGrid;
         private Label lblTitulo;
         private Guna2Separator linha;
         private Label lblCodigo;
         private Label lblNome;
         private Label lblDescricao;
         private Label lblCategoria;
-        private Guna2Panel panelGrid;
         private Label lblListaTitulo;
         private Guna2Separator linhaGrid;
         private Label lblTotal;
@@ -44,8 +43,18 @@ namespace Enterprise.Forms
         public FormServicos()
         {
             InitializeComponent();
+            ConfigurarEventos();
             CarregarCategorias();
             CarregarServicos();
+        }
+
+        private void ConfigurarEventos()
+        {
+            btnNovo.Click += btnNovo_Click;
+            btnSalvar.Click += btnSalvar_Click;
+            btnApagar.Click += btnApagar_Click;
+            dgvServicos.CellClick += dgvServicos_CellClick;
+            txtFiltro.TextChanged += txtFiltro_TextChanged;
         }
 
         private void CarregarCategorias()
@@ -87,12 +96,9 @@ namespace Enterprise.Forms
 
                     RenomearColuna("Codigo", "CÓDIGO");
                     RenomearColuna("Nome", "NOME");
-
-                    if (dgvServicos.Columns.Contains("PrecoBase"))
-                        dgvServicos.Columns["PrecoBase"].DefaultCellStyle.Format = "N2";
                 }
 
-                lblTotal.Text = "📊 " + lista.Count + " serviços registados";
+                lblTotal.Text = $"📊 {lista.Count} serviços registados";
             }
             catch (Exception ex)
             {
@@ -130,14 +136,13 @@ namespace Enterprise.Forms
         {
             txtCodigo.Text = s.Codigo ?? "";
             txtNome.Text = s.Nome;
+          
             chkActivo.Checked = s.Activo;
             if (s.CategoriaId.HasValue && cmbCategoria.Items.Count > 0)
                 cmbCategoria.SelectedValue = s.CategoriaId.Value;
             btnSalvar.Text = "✏️ Actualizar";
             btnSalvar.FillColor = Color.FromArgb(0, 122, 255);
         }
-
-        // ── EVENTOS ──────────────────────────────────────────
 
         private void btnNovo_Click(object sender, EventArgs e)
         {
@@ -164,6 +169,7 @@ namespace Enterprise.Forms
                     CategoriaId = catId,
                     Codigo = txtCodigo.Text.Trim(),
                     Nome = txtNome.Text.Trim(),
+                 
                     Activo = chkActivo.Checked
                 };
 
@@ -191,12 +197,14 @@ namespace Enterprise.Forms
                 return;
             }
 
-            if (MessageBox.Show("Apagar '" + _servicoSelecionado.Nome + "'?", "Confirmar",
-                MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            if (MessageBox.Show($"Tem certeza que deseja apagar o serviço '{_servicoSelecionado.Nome}'?\nEsta ação não pode ser desfeita.",
+                "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
                 try
                 {
                     AppDataConnection.ApagarServico(_servicoSelecionado.Id);
+                    MessageBox.Show("Serviço apagado com sucesso!", "Sucesso",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                     LimparFormulario();
                     CarregarServicos();
                 }
@@ -230,14 +238,14 @@ namespace Enterprise.Forms
         }
 
         // ═══════════════════════════════════════════════════════════
-        // INITIALIZE COMPONENT - FORMATO DESIGNER SAFE
+        // INITIALIZE COMPONENT
         // ═══════════════════════════════════════════════════════════
 
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle5 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle6 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
             this.txtNome = new Guna.UI2.WinForms.Guna2TextBox();
             this.txtCodigo = new Guna.UI2.WinForms.Guna2TextBox();
             this.txtDescricao = new Guna.UI2.WinForms.Guna2TextBox();
@@ -267,12 +275,12 @@ namespace Enterprise.Forms
             // 
             // txtNome
             // 
-            this.txtNome.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(200)))));
+            this.txtNome.BorderColor = System.Drawing.Color.FromArgb(200, 200, 200);
             this.txtNome.BorderRadius = 6;
             this.txtNome.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtNome.DefaultText = "";
             this.txtNome.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.txtNome.Location = new System.Drawing.Point(20, 180);
+            this.txtNome.Location = new System.Drawing.Point(20, 135);
             this.txtNome.Name = "txtNome";
             this.txtNome.PlaceholderText = "";
             this.txtNome.SelectedText = "";
@@ -281,7 +289,7 @@ namespace Enterprise.Forms
             // 
             // txtCodigo
             // 
-            this.txtCodigo.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(200)))));
+            this.txtCodigo.BorderColor = System.Drawing.Color.FromArgb(200, 200, 200);
             this.txtCodigo.BorderRadius = 6;
             this.txtCodigo.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtCodigo.DefaultText = "";
@@ -295,46 +303,45 @@ namespace Enterprise.Forms
             // 
             // txtDescricao
             // 
-            this.txtDescricao.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(200)))));
+            this.txtDescricao.BorderColor = System.Drawing.Color.FromArgb(200, 200, 200);
             this.txtDescricao.BorderRadius = 6;
             this.txtDescricao.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtDescricao.DefaultText = "";
             this.txtDescricao.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.txtDescricao.Location = new System.Drawing.Point(20, 277);
+            this.txtDescricao.Location = new System.Drawing.Point(20, 230);
             this.txtDescricao.Multiline = true;
             this.txtDescricao.Name = "txtDescricao";
-            this.txtDescricao.PlaceholderText = "";
+            this.txtDescricao.PlaceholderText = "Descrição do serviço...";
             this.txtDescricao.SelectedText = "";
-            this.txtDescricao.Size = new System.Drawing.Size(360, 54);
+            this.txtDescricao.Size = new System.Drawing.Size(360, 70);
             this.txtDescricao.TabIndex = 7;
-            this.txtDescricao.TextChanged += new System.EventHandler(this.txtDescricao_TextChanged);
             // 
             // txtFiltro
             // 
-            this.txtFiltro.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(200)))));
+            this.txtFiltro.BorderColor = System.Drawing.Color.FromArgb(200, 200, 200);
             this.txtFiltro.BorderRadius = 8;
             this.txtFiltro.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.txtFiltro.DefaultText = "";
             this.txtFiltro.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.txtFiltro.Location = new System.Drawing.Point(20, 66);
             this.txtFiltro.Name = "txtFiltro";
-            this.txtFiltro.PlaceholderText = "🔍 Pesquisar por nome, código ou categoria...";
+            this.txtFiltro.PlaceholderText = "🔍 Pesquisar por nome, código...";
             this.txtFiltro.SelectedText = "";
-            this.txtFiltro.Size = new System.Drawing.Size(400, 41);
+            this.txtFiltro.Size = new System.Drawing.Size(660, 41);
             this.txtFiltro.TabIndex = 2;
             // 
             // cmbCategoria
             // 
             this.cmbCategoria.BackColor = System.Drawing.Color.Transparent;
-            this.cmbCategoria.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(200)))));
+            this.cmbCategoria.BorderColor = System.Drawing.Color.FromArgb(200, 200, 200);
             this.cmbCategoria.BorderRadius = 6;
             this.cmbCategoria.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.cmbCategoria.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbCategoria.FocusedColor = System.Drawing.Color.Empty;
             this.cmbCategoria.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.cmbCategoria.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(68)))), ((int)(((byte)(88)))), ((int)(((byte)(112)))));
+            this.cmbCategoria.ForeColor = System.Drawing.Color.FromArgb(68, 88, 112);
             this.cmbCategoria.ItemHeight = 30;
-            this.cmbCategoria.Location = new System.Drawing.Point(20, 385);
+            this.cmbCategoria.Location = new System.Drawing.Point(20, 340);
             this.cmbCategoria.Name = "cmbCategoria";
             this.cmbCategoria.Size = new System.Drawing.Size(360, 36);
             this.cmbCategoria.TabIndex = 9;
@@ -346,51 +353,46 @@ namespace Enterprise.Forms
             this.cmbUnidade.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbUnidade.FocusedColor = System.Drawing.Color.Empty;
             this.cmbUnidade.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.cmbUnidade.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(68)))), ((int)(((byte)(88)))), ((int)(((byte)(112)))));
+            this.cmbUnidade.ForeColor = System.Drawing.Color.FromArgb(68, 88, 112);
             this.cmbUnidade.ItemHeight = 30;
-            this.cmbUnidade.Location = new System.Drawing.Point(0, 0);
+            this.cmbUnidade.Items.AddRange(new object[] { "un", "hora", "dia", "m²", "m³", "m", "kg", "serviço" });
+            this.cmbUnidade.Location = new System.Drawing.Point(20, 0);
             this.cmbUnidade.Name = "cmbUnidade";
             this.cmbUnidade.Size = new System.Drawing.Size(140, 36);
             this.cmbUnidade.TabIndex = 0;
+            this.cmbUnidade.Visible = false;
             // 
             // chkActivo
             // 
             this.chkActivo.Checked = true;
-            this.chkActivo.CheckedState.BorderRadius = 0;
-            this.chkActivo.CheckedState.BorderThickness = 0;
-            this.chkActivo.CheckState = System.Windows.Forms.CheckState.Checked;
             this.chkActivo.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.chkActivo.Location = new System.Drawing.Point(20, 452);
+            this.chkActivo.Location = new System.Drawing.Point(20, 415);
             this.chkActivo.Name = "chkActivo";
             this.chkActivo.Size = new System.Drawing.Size(150, 30);
             this.chkActivo.TabIndex = 10;
             this.chkActivo.Text = "✓ Serviço activo";
-            this.chkActivo.UncheckedState.BorderRadius = 0;
-            this.chkActivo.UncheckedState.BorderThickness = 0;
             // 
             // dgvServicos
             // 
             this.dgvServicos.AllowUserToAddRows = false;
-            dataGridViewCellStyle4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(252)))));
-            this.dgvServicos.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle4;
-            dataGridViewCellStyle5.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(45)))));
-            dataGridViewCellStyle5.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            dataGridViewCellStyle5.ForeColor = System.Drawing.Color.White;
-            dataGridViewCellStyle5.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle5.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle5.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dgvServicos.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle5;
+            dataGridViewCellStyle1.BackColor = System.Drawing.Color.FromArgb(248, 249, 252);
+            this.dgvServicos.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = System.Drawing.Color.FromArgb(30, 30, 45);
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            dataGridViewCellStyle2.ForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgvServicos.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle2;
             this.dgvServicos.ColumnHeadersHeight = 40;
-            dataGridViewCellStyle6.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle6.BackColor = System.Drawing.Color.White;
-            dataGridViewCellStyle6.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle6.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
-            dataGridViewCellStyle6.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(231)))), ((int)(((byte)(229)))), ((int)(((byte)(255)))));
-            dataGridViewCellStyle6.SelectionForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
-            dataGridViewCellStyle6.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.dgvServicos.DefaultCellStyle = dataGridViewCellStyle6;
-            this.dgvServicos.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(230)))), ((int)(((byte)(230)))));
+            dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle3.BackColor = System.Drawing.Color.White;
+            dataGridViewCellStyle3.Font = new System.Drawing.Font("Segoe UI", 9F);
+            dataGridViewCellStyle3.ForeColor = System.Drawing.Color.FromArgb(71, 69, 94);
+            dataGridViewCellStyle3.SelectionBackColor = System.Drawing.Color.FromArgb(231, 229, 255);
+            dataGridViewCellStyle3.SelectionForeColor = System.Drawing.Color.FromArgb(71, 69, 94);
+            dataGridViewCellStyle3.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.dgvServicos.DefaultCellStyle = dataGridViewCellStyle3;
+            this.dgvServicos.GridColor = System.Drawing.Color.FromArgb(230, 230, 230);
             this.dgvServicos.Location = new System.Drawing.Point(20, 126);
             this.dgvServicos.MultiSelect = false;
             this.dgvServicos.Name = "dgvServicos";
@@ -399,61 +401,40 @@ namespace Enterprise.Forms
             this.dgvServicos.RowTemplate.Height = 35;
             this.dgvServicos.Size = new System.Drawing.Size(660, 490);
             this.dgvServicos.TabIndex = 4;
-            this.dgvServicos.ThemeStyle.AlternatingRowsStyle.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(252)))));
-            this.dgvServicos.ThemeStyle.AlternatingRowsStyle.Font = null;
-            this.dgvServicos.ThemeStyle.AlternatingRowsStyle.ForeColor = System.Drawing.Color.Empty;
-            this.dgvServicos.ThemeStyle.AlternatingRowsStyle.SelectionBackColor = System.Drawing.Color.Empty;
-            this.dgvServicos.ThemeStyle.AlternatingRowsStyle.SelectionForeColor = System.Drawing.Color.Empty;
-            this.dgvServicos.ThemeStyle.BackColor = System.Drawing.Color.White;
-            this.dgvServicos.ThemeStyle.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(230)))), ((int)(((byte)(230)))));
-            this.dgvServicos.ThemeStyle.HeaderStyle.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(45)))));
-            this.dgvServicos.ThemeStyle.HeaderStyle.BorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
-            this.dgvServicos.ThemeStyle.HeaderStyle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.dgvServicos.ThemeStyle.HeaderStyle.ForeColor = System.Drawing.Color.White;
-            this.dgvServicos.ThemeStyle.HeaderStyle.HeaightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            this.dgvServicos.ThemeStyle.HeaderStyle.Height = 40;
-            this.dgvServicos.ThemeStyle.ReadOnly = true;
-            this.dgvServicos.ThemeStyle.RowsStyle.BackColor = System.Drawing.Color.White;
-            this.dgvServicos.ThemeStyle.RowsStyle.BorderStyle = System.Windows.Forms.DataGridViewCellBorderStyle.SingleHorizontal;
-            this.dgvServicos.ThemeStyle.RowsStyle.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.dgvServicos.ThemeStyle.RowsStyle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
-            this.dgvServicos.ThemeStyle.RowsStyle.Height = 35;
-            this.dgvServicos.ThemeStyle.RowsStyle.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(231)))), ((int)(((byte)(229)))), ((int)(((byte)(255)))));
-            this.dgvServicos.ThemeStyle.RowsStyle.SelectionForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
             // 
             // btnSalvar
             // 
             this.btnSalvar.BorderRadius = 8;
-            this.btnSalvar.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(199)))), ((int)(((byte)(89)))));
+            this.btnSalvar.FillColor = System.Drawing.Color.FromArgb(52, 199, 89);
             this.btnSalvar.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
             this.btnSalvar.ForeColor = System.Drawing.Color.White;
-            this.btnSalvar.Location = new System.Drawing.Point(20, 507);
+            this.btnSalvar.Location = new System.Drawing.Point(20, 460);
             this.btnSalvar.Name = "btnSalvar";
-            this.btnSalvar.Size = new System.Drawing.Size(120, 40);
+            this.btnSalvar.Size = new System.Drawing.Size(110, 40);
             this.btnSalvar.TabIndex = 11;
             this.btnSalvar.Text = "💾 Salvar";
             // 
             // btnNovo
             // 
             this.btnNovo.BorderRadius = 8;
-            this.btnNovo.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(255)))));
+            this.btnNovo.FillColor = System.Drawing.Color.FromArgb(0, 122, 255);
             this.btnNovo.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
             this.btnNovo.ForeColor = System.Drawing.Color.White;
-            this.btnNovo.Location = new System.Drawing.Point(146, 507);
+            this.btnNovo.Location = new System.Drawing.Point(140, 460);
             this.btnNovo.Name = "btnNovo";
-            this.btnNovo.Size = new System.Drawing.Size(120, 40);
+            this.btnNovo.Size = new System.Drawing.Size(110, 40);
             this.btnNovo.TabIndex = 12;
             this.btnNovo.Text = "➕ Novo";
             // 
             // btnApagar
             // 
             this.btnApagar.BorderRadius = 8;
-            this.btnApagar.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(59)))), ((int)(((byte)(48)))));
+            this.btnApagar.FillColor = System.Drawing.Color.FromArgb(255, 59, 48);
             this.btnApagar.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
             this.btnApagar.ForeColor = System.Drawing.Color.White;
-            this.btnApagar.Location = new System.Drawing.Point(272, 507);
+            this.btnApagar.Location = new System.Drawing.Point(260, 460);
             this.btnApagar.Name = "btnApagar";
-            this.btnApagar.Size = new System.Drawing.Size(120, 40);
+            this.btnApagar.Size = new System.Drawing.Size(110, 40);
             this.btnApagar.TabIndex = 13;
             this.btnApagar.Text = "🗑️ Apagar";
             // 
@@ -461,7 +442,7 @@ namespace Enterprise.Forms
             // 
             this.lblTotal.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic);
             this.lblTotal.ForeColor = System.Drawing.Color.Gray;
-            this.lblTotal.Location = new System.Drawing.Point(460, 66);
+            this.lblTotal.Location = new System.Drawing.Point(440, 66);
             this.lblTotal.Name = "lblTotal";
             this.lblTotal.Size = new System.Drawing.Size(240, 25);
             this.lblTotal.TabIndex = 3;
@@ -470,7 +451,9 @@ namespace Enterprise.Forms
             // panelForm
             // 
             this.panelForm.AutoScroll = true;
+            this.panelForm.BorderColor = System.Drawing.Color.FromArgb(220, 224, 230);
             this.panelForm.BorderRadius = 10;
+            this.panelForm.BorderThickness = 1;
             this.panelForm.Controls.Add(this.lblTitulo);
             this.panelForm.Controls.Add(this.linha);
             this.panelForm.Controls.Add(this.lblCodigo);
@@ -485,10 +468,10 @@ namespace Enterprise.Forms
             this.panelForm.Controls.Add(this.btnSalvar);
             this.panelForm.Controls.Add(this.btnNovo);
             this.panelForm.Controls.Add(this.btnApagar);
-            this.panelForm.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(247)))), ((int)(((byte)(250)))));
+            this.panelForm.FillColor = System.Drawing.Color.FromArgb(248, 249, 252);
             this.panelForm.Location = new System.Drawing.Point(20, 20);
             this.panelForm.Name = "panelForm";
-            this.panelForm.Size = new System.Drawing.Size(420, 800);
+            this.panelForm.Size = new System.Drawing.Size(400, 720);
             this.panelForm.TabIndex = 0;
             // 
             // lblTitulo
@@ -502,16 +485,16 @@ namespace Enterprise.Forms
             // 
             // linha
             // 
-            this.linha.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(255)))));
+            this.linha.FillColor = System.Drawing.Color.FromArgb(0, 122, 255);
             this.linha.Location = new System.Drawing.Point(20, 45);
             this.linha.Name = "linha";
-            this.linha.Size = new System.Drawing.Size(380, 2);
+            this.linha.Size = new System.Drawing.Size(360, 2);
             this.linha.TabIndex = 1;
             // 
             // lblCodigo
             // 
             this.lblCodigo.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
-            this.lblCodigo.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.lblCodigo.ForeColor = System.Drawing.Color.FromArgb(100, 100, 120);
             this.lblCodigo.Location = new System.Drawing.Point(20, 60);
             this.lblCodigo.Name = "lblCodigo";
             this.lblCodigo.Size = new System.Drawing.Size(360, 18);
@@ -521,8 +504,8 @@ namespace Enterprise.Forms
             // lblNome
             // 
             this.lblNome.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
-            this.lblNome.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
-            this.lblNome.Location = new System.Drawing.Point(21, 148);
+            this.lblNome.ForeColor = System.Drawing.Color.FromArgb(100, 100, 120);
+            this.lblNome.Location = new System.Drawing.Point(20, 110);
             this.lblNome.Name = "lblNome";
             this.lblNome.Size = new System.Drawing.Size(360, 18);
             this.lblNome.TabIndex = 4;
@@ -531,8 +514,8 @@ namespace Enterprise.Forms
             // lblDescricao
             // 
             this.lblDescricao.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
-            this.lblDescricao.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
-            this.lblDescricao.Location = new System.Drawing.Point(23, 239);
+            this.lblDescricao.ForeColor = System.Drawing.Color.FromArgb(100, 100, 120);
+            this.lblDescricao.Location = new System.Drawing.Point(20, 200);
             this.lblDescricao.Name = "lblDescricao";
             this.lblDescricao.Size = new System.Drawing.Size(360, 18);
             this.lblDescricao.TabIndex = 6;
@@ -541,8 +524,8 @@ namespace Enterprise.Forms
             // lblCategoria
             // 
             this.lblCategoria.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
-            this.lblCategoria.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
-            this.lblCategoria.Location = new System.Drawing.Point(21, 353);
+            this.lblCategoria.ForeColor = System.Drawing.Color.FromArgb(100, 100, 120);
+            this.lblCategoria.Location = new System.Drawing.Point(20, 315);
             this.lblCategoria.Name = "lblCategoria";
             this.lblCategoria.Size = new System.Drawing.Size(360, 18);
             this.lblCategoria.TabIndex = 8;
@@ -550,7 +533,7 @@ namespace Enterprise.Forms
             // 
             // panelGrid
             // 
-            this.panelGrid.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(224)))), ((int)(((byte)(230)))));
+            this.panelGrid.BorderColor = System.Drawing.Color.FromArgb(220, 224, 230);
             this.panelGrid.BorderRadius = 10;
             this.panelGrid.BorderThickness = 1;
             this.panelGrid.Controls.Add(this.lblListaTitulo);
@@ -559,9 +542,9 @@ namespace Enterprise.Forms
             this.panelGrid.Controls.Add(this.lblTotal);
             this.panelGrid.Controls.Add(this.dgvServicos);
             this.panelGrid.FillColor = System.Drawing.Color.White;
-            this.panelGrid.Location = new System.Drawing.Point(460, 20);
+            this.panelGrid.Location = new System.Drawing.Point(440, 20);
             this.panelGrid.Name = "panelGrid";
-            this.panelGrid.Size = new System.Drawing.Size(700, 620);
+            this.panelGrid.Size = new System.Drawing.Size(700, 720);
             this.panelGrid.TabIndex = 1;
             // 
             // lblListaTitulo
@@ -575,7 +558,7 @@ namespace Enterprise.Forms
             // 
             // linhaGrid
             // 
-            this.linhaGrid.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(255)))));
+            this.linhaGrid.FillColor = System.Drawing.Color.FromArgb(0, 122, 255);
             this.linhaGrid.Location = new System.Drawing.Point(20, 45);
             this.linhaGrid.Name = "linhaGrid";
             this.linhaGrid.Size = new System.Drawing.Size(660, 2);
@@ -584,9 +567,10 @@ namespace Enterprise.Forms
             // FormServicos
             // 
             this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(1184, 661);
+            this.ClientSize = new System.Drawing.Size(1184, 761);
             this.Controls.Add(this.panelForm);
             this.Controls.Add(this.panelGrid);
+            this.MinimumSize = new System.Drawing.Size(1100, 700);
             this.Name = "FormServicos";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Gestão de Serviços";
@@ -594,12 +578,6 @@ namespace Enterprise.Forms
             this.panelForm.ResumeLayout(false);
             this.panelGrid.ResumeLayout(false);
             this.ResumeLayout(false);
-
-        }
-
-        private void txtDescricao_TextChanged(object sender, EventArgs e)
-        {
-
         }
     }
 }

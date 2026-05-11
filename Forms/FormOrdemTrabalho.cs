@@ -13,11 +13,92 @@ namespace Enterprise.Forms
     {
         private List<ItemDocumento> _itens = new List<ItemDocumento>();
         private OrdemTrabalho? _ordemActual = null;
-        private const decimal IVA_PERCENTAGEM = 17m;
+        private const decimal IVA_PERCENTAGEM = 16m;
+
+        // ═══════════════════════════════════════════════════════════
+        // CORES PADRÃO DO SISTEMA (Design System)
+        // ═══════════════════════════════════════════════════════════
+        private static readonly Color COR_PRIMARIA = Color.FromArgb(0, 122, 255);
+        private static readonly Color COR_SUCESSO = Color.FromArgb(52, 199, 89);
+        private static readonly Color COR_PERIGO = Color.FromArgb(255, 59, 48);
+        private static readonly Color COR_ALERTA = Color.FromArgb(255, 149, 0);
+        private static readonly Color COR_FUNDO_PAINEL = Color.FromArgb(248, 249, 252);
+        private static readonly Color COR_FUNDO_FORM = Color.White;
+        private static readonly Color COR_BORDA_PAINEL = Color.FromArgb(220, 224, 230);
+        private static readonly Color COR_BORDA_INPUT = Color.FromArgb(200, 200, 210);
+        private static readonly Color COR_TEXTO_TITULO = Color.FromArgb(30, 30, 45);
+        private static readonly Color COR_TEXTO_LABEL = Color.FromArgb(100, 100, 120);
+        private static readonly Color COR_TEXTO_NORMAL = Color.FromArgb(80, 80, 100);
+        private static readonly Color COR_TEXTO_TOTAL = Color.FromArgb(0, 102, 204);
+        private static readonly Color COR_FUNDO_INPUT_READONLY = Color.FromArgb(245, 245, 248);
+        private static readonly Color COR_GRID_HEADER = Color.FromArgb(25, 25, 40);
+        private static readonly Color COR_GRID_SELECAO = Color.FromArgb(210, 230, 255);
+        private static readonly Color COR_GRID_LINHA_ALT = Color.FromArgb(248, 250, 255);
+        private static readonly Color COR_GRID_LINHA = Color.White;
+        private static readonly Color COR_GRID_GRID = Color.FromArgb(230, 230, 230);
+        private static readonly Color COR_LINHA_SEPARADOR = Color.FromArgb(0, 122, 255);
+        private static readonly Color COR_LINHA_DIVISORIA = Color.FromArgb(200, 200, 200);
+
+        // Componentes do formulário
+        private Guna2TextBox txtNumero;
+        private Guna2TextBox txtLocalObra;
+        private Guna2TextBox txtDescricao;
+        private Guna2TextBox txtObservacoes;
+        private Guna2TextBox txtPrecoItem;
+        private Guna2ComboBox cmbCliente;
+        private Guna2ComboBox cmbServico;
+        
+        private Guna2DateTimePicker dtpData;
+        private Guna2DateTimePicker dtpInicio;
+        private Guna2DateTimePicker dtpFim;
+        private NumericUpDown nudQuantidade;
+        private NumericUpDown nudDesconto;
+        private Guna2DataGridView dgvItens;
+        private Guna2DataGridView dgvHistorico;
+        private Guna2Button btnSalvar;
+        private Guna2Button btnImprimir;
+        private Guna2Button btnAdicionarItem;
+        private Guna2Button btnRemoverItem;
+        private Label lblSubTotal;
+        private Label lblIva;
+        private Label lblTotal;
+        private Guna2Panel panelScroll;
+        private Guna2Panel panelDados;
+        private Label lblTituloDados;
+        private Guna2Separator linhaDados;
+        private Label lblNumero;
+        private Label lblData;
+        private Label lblDataInicio;
+        private Label lblDataFim;
+        private Label lblEstado;
+        private Label lblCliente;
+        private Label lblLocalObra;
+        private Guna2Panel panelDesc;
+        private Label lblTituloDesc;
+        private Guna2Panel panelItens;
+        private Label lblTituloItens;
+        private Guna2Separator linhaItens;
+        private Guna2Panel barraItens;
+        private Label lblServicoBarra;
+        private Label lblPrecoBarra;
+        private Label lblQtdBarra;
+        private Label lblDescBarra;
+        private Guna2Panel panelRodape;
+        private Label lblObs;
+        private Guna2Panel panelTotais;
+        private Label lblSubTxt;
+        private Label lblIvaTxt;
+        private Guna2Separator lineSep;
+        private Label lblTotalTxt;
+        private Guna2Panel panelHistorico;
+        private Label lblTituloHist;
+        private Guna2Button btnApagar;
+        private Guna2Separator linhaHist;
 
         public FormOrdemTrabalho()
         {
             InitializeComponent();
+            AplicarEstilosCustomizados();
             CarregarDados();
         }
 
@@ -40,10 +121,6 @@ namespace Enterprise.Forms
                 dtpInicio.Value = DateTime.Now;
                 dtpFim.Value = DateTime.Now.AddDays(30);
 
-                cmbEstado.Items.AddRange(new object[]
-                    { "Aberta", "Em Curso", "Concluída", "Cancelada" });
-                cmbEstado.SelectedIndex = 0;
-
                 CarregarOrdens();
             }
             catch (Exception ex)
@@ -61,17 +138,21 @@ namespace Enterprise.Forms
 
                 if (dgvHistorico.Columns.Count > 0)
                 {
-                    string[] ocultas = { "Id","ClienteId","Itens","Cliente","Descricao",
-                                         "Observacoes","DataInicio","DataFim","SubTotal",
-                                         "ValorIva","Iva","CriadoEm" };
+                    string[] ocultas = { "Id", "ClienteId", "Itens", "Cliente", "Descricao",
+                                         "Observacoes", "DataInicio", "DataFim", "SubTotal",
+                                         "ValorIva", "Iva", "CriadoEm" };
                     foreach (var col in ocultas)
                         if (dgvHistorico.Columns.Contains(col))
                             dgvHistorico.Columns[col].Visible = false;
 
-                    if (dgvHistorico.Columns.Contains("Numero")) dgvHistorico.Columns["Numero"].HeaderText = "Nº ORDEM";
-                    if (dgvHistorico.Columns.Contains("Data")) dgvHistorico.Columns["Data"].HeaderText = "DATA";
-                    if (dgvHistorico.Columns.Contains("Estado")) dgvHistorico.Columns["Estado"].HeaderText = "ESTADO";
-                    if (dgvHistorico.Columns.Contains("LocalObra")) dgvHistorico.Columns["LocalObra"].HeaderText = "LOCAL";
+                    if (dgvHistorico.Columns.Contains("Numero"))
+                        dgvHistorico.Columns["Numero"].HeaderText = "Nº ORDEM";
+                    if (dgvHistorico.Columns.Contains("Data"))
+                        dgvHistorico.Columns["Data"].HeaderText = "DATA";
+                    if (dgvHistorico.Columns.Contains("Estado"))
+                        dgvHistorico.Columns["Estado"].HeaderText = "ESTADO";
+                    if (dgvHistorico.Columns.Contains("LocalObra"))
+                        dgvHistorico.Columns["LocalObra"].HeaderText = "LOCAL";
                     if (dgvHistorico.Columns.Contains("Total"))
                     {
                         dgvHistorico.Columns["Total"].HeaderText = "TOTAL (MT)";
@@ -89,6 +170,7 @@ namespace Enterprise.Forms
         private void BtnAdicionarItem_Click(object sender, EventArgs e)
         {
             if (cmbServico.SelectedItem is not Servico s) return;
+
             _itens.Add(new ItemDocumento
             {
                 ServicoId = s.Id,
@@ -99,6 +181,7 @@ namespace Enterprise.Forms
                 Desconto = nudDesconto.Value,
                 Servico = s
             });
+
             ActualizarGrelhaItens();
         }
 
@@ -128,16 +211,20 @@ namespace Enterprise.Forms
                     if (dgvItens.Columns.Contains(col))
                         dgvItens.Columns[col].Visible = false;
 
-                if (dgvItens.Columns.Contains("Descricao")) dgvItens.Columns["Descricao"].HeaderText = "DESCRIÇÃO";
-                if (dgvItens.Columns.Contains("Unidade")) dgvItens.Columns["Unidade"].HeaderText = "UN.";
-                if (dgvItens.Columns.Contains("Quantidade")) dgvItens.Columns["Quantidade"].HeaderText = "QTD";
+                if (dgvItens.Columns.Contains("Descricao"))
+                    dgvItens.Columns["Descricao"].HeaderText = "DESCRIÇÃO";
+                if (dgvItens.Columns.Contains("Unidade"))
+                    dgvItens.Columns["Unidade"].HeaderText = "UN.";
+                if (dgvItens.Columns.Contains("Quantidade"))
+                    dgvItens.Columns["Quantidade"].HeaderText = "QTD";
                 if (dgvItens.Columns.Contains("PrecoUnitario"))
                 {
                     dgvItens.Columns["PrecoUnitario"].HeaderText = "PREÇO UNIT. (MT)";
                     dgvItens.Columns["PrecoUnitario"].DefaultCellStyle.Format = "N2";
                     dgvItens.Columns["PrecoUnitario"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
                 }
-                if (dgvItens.Columns.Contains("Desconto")) dgvItens.Columns["Desconto"].HeaderText = "DESC. %";
+                if (dgvItens.Columns.Contains("Desconto"))
+                    dgvItens.Columns["Desconto"].HeaderText = "DESC. %";
                 if (dgvItens.Columns.Contains("Total"))
                 {
                     dgvItens.Columns["Total"].HeaderText = "TOTAL (MT)";
@@ -152,19 +239,39 @@ namespace Enterprise.Forms
         private void CalcularTotais()
         {
             decimal sub = 0;
-            foreach (var i in _itens) sub += i.Total;
+            foreach (var i in _itens)
+                sub += i.Total;
+
             decimal vIva = sub * (IVA_PERCENTAGEM / 100);
             decimal total = sub + vIva;
 
             lblSubTotal.Text = sub.ToString("N2") + " MT";
-            lblIva.Text = $"IVA ({IVA_PERCENTAGEM}%):   " + vIva.ToString("N2") + " MT";
+            lblIva.Text = "IVA (" + IVA_PERCENTAGEM + "%): " + vIva.ToString("N2") + " MT";
             lblTotal.Text = total.ToString("N2") + " MT";
+        }
+
+        private bool Validar()
+        {
+            if (cmbCliente.SelectedItem == null)
+            {
+                MessageBox.Show("Selecione um cliente!", "Atenção",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            if (_itens.Count == 0)
+            {
+                MessageBox.Show("Adicione pelo menos um serviço!", "Atenção",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            return true;
         }
 
         private void BtnSalvar_Click(object sender, EventArgs e)
         {
-            if (cmbCliente.SelectedItem == null)
-            { MessageBox.Show("Seleccione um cliente!", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            if (!Validar()) return;
 
             try
             {
@@ -180,12 +287,12 @@ namespace Enterprise.Forms
                     Descricao = txtDescricao.Text.Trim(),
                     Observacoes = txtObservacoes.Text.Trim(),
                     Iva = IVA_PERCENTAGEM,
-                    Estado = cmbEstado.Text,
                     Itens = _itens
                 };
 
                 AppDataConnection.SalvarOrdem(ordem);
-                MessageBox.Show($"Ordem {ordem.Numero} guardada!", "Sucesso",
+
+                MessageBox.Show("Ordem " + ordem.Numero + " guardada com sucesso!", "Sucesso",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                 CarregarOrdens();
@@ -201,13 +308,23 @@ namespace Enterprise.Forms
         private void BtnImprimir_Click(object sender, EventArgs e)
         {
             if (_ordemActual == null)
-            { MessageBox.Show("Salve a ordem primeiro!", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            {
+                MessageBox.Show("Salve a ordem primeiro!", "Atenção",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             try
             {
                 var emp = AppDataConnection.GetEmpresa();
                 PdfGenerator.GerarOrdemTrabalho(_ordemActual, emp!);
+                MessageBox.Show("PDF gerado com sucesso!", "Sucesso",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
-            catch (Exception ex) { MessageBox.Show("Erro ao gerar PDF: " + ex.Message); }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erro ao gerar PDF: " + ex.Message);
+            }
         }
 
         private void LimparFormulario()
@@ -219,23 +336,32 @@ namespace Enterprise.Forms
             txtDescricao.Clear();
             txtObservacoes.Clear();
             dtpData.Value = DateTime.Now;
-            cmbEstado.SelectedIndex = 0;
+            dtpInicio.Value = DateTime.Now;
+            dtpFim.Value = DateTime.Now.AddDays(30);
+
+            
+
             ActualizarGrelhaItens();
         }
 
         private void dgvHistorico_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
+
             _ordemActual = dgvHistorico.Rows[e.RowIndex].DataBoundItem as OrdemTrabalho;
+
             if (_ordemActual != null)
             {
                 txtNumero.Text = _ordemActual.Numero;
                 txtLocalObra.Text = _ordemActual.LocalObra ?? "";
                 txtDescricao.Text = _ordemActual.Descricao ?? "";
                 txtObservacoes.Text = _ordemActual.Observacoes ?? "";
-                cmbEstado.Text = _ordemActual.Estado;
-                if (_ordemActual.DataInicio.HasValue) dtpInicio.Value = _ordemActual.DataInicio.Value;
-                if (_ordemActual.DataFim.HasValue) dtpFim.Value = _ordemActual.DataFim.Value;
+
+                if (_ordemActual.DataInicio.HasValue)
+                    dtpInicio.Value = _ordemActual.DataInicio.Value;
+                if (_ordemActual.DataFim.HasValue)
+                    dtpFim.Value = _ordemActual.DataFim.Value;
+
                 _itens = _ordemActual.Itens;
                 ActualizarGrelhaItens();
             }
@@ -246,341 +372,954 @@ namespace Enterprise.Forms
             if (cmbServico.SelectedItem is Servico s)
                 txtPrecoItem.Text = s.PrecoBase.ToString("N2");
         }
-    }
 
-    // ── DESIGNER ─────────────────────────────────────────────
-    partial class FormOrdemTrabalho
-    {
-        private System.ComponentModel.IContainer? components = null;
-        protected override void Dispose(bool d) { if (d) components?.Dispose(); base.Dispose(d); }
-
-        private void InitializeComponent()
+        // ═══════════════════════════════════════════════════════════
+        // APLICAR ESTILOS CUSTOMIZADOS (chamado após InitializeComponent)
+        // ═══════════════════════════════════════════════════════════
+        private void AplicarEstilosCustomizados()
         {
-            txtNumero = new Guna2TextBox();
-            txtLocalObra = new Guna2TextBox();
-            txtDescricao = new Guna2TextBox();
-            txtObservacoes = new Guna2TextBox();
-            txtPrecoItem = new Guna2TextBox();
-            cmbCliente = new Guna2ComboBox();
-            cmbServico = new Guna2ComboBox();
-            cmbEstado = new Guna2ComboBox();
-            dtpData = new Guna2DateTimePicker();
-            dtpInicio = new Guna2DateTimePicker();
-            dtpFim = new Guna2DateTimePicker();
-            nudQuantidade = new NumericUpDown();
-            nudDesconto = new NumericUpDown();
-            dgvItens = new Guna2DataGridView();
-            dgvHistorico = new Guna2DataGridView();
-            btnSalvar = new Guna2Button();
-            btnImprimir = new Guna2Button();
-            btnAdicionarItem = new Guna2Button();
-            btnRemoverItem = new Guna2Button();
-            lblSubTotal = new Label();
-            lblIva = new Label();
-            lblTotal = new Label();
+            // Formulário
+            this.BackColor = COR_FUNDO_FORM;
 
-            SuspendLayout();
+            // Cores dos botões
+            btnSalvar.FillColor = COR_SUCESSO;
+            btnSalvar.ForeColor = Color.White;
+            btnSalvar.Font = new Font("Segoe UI Semibold", 10);
 
-            Text = "Ordens de Trabalho";
-            Size = new Size(1350, 860);
-            BackColor = Color.White;
-            StartPosition = FormStartPosition.CenterScreen;
-            MinimumSize = new Size(1200, 700);
+            btnImprimir.FillColor = COR_ALERTA;
+            btnImprimir.ForeColor = Color.White;
+            btnImprimir.Font = new Font("Segoe UI Semibold", 10);
 
-            var panelScroll = new Guna2Panel();
-            panelScroll.Dock = DockStyle.Fill;
-            panelScroll.AutoScroll = true;
-            panelScroll.AutoScrollMinSize = new Size(0, 1050);
-            panelScroll.BackColor = Color.White;
-            panelScroll.Padding = new Padding(20, 20, 20, 50);
+            btnAdicionarItem.FillColor = COR_SUCESSO;
+            btnAdicionarItem.ForeColor = Color.White;
+            btnAdicionarItem.Font = new Font("Segoe UI Semibold", 10);
 
-            // ── PAINEL DADOS ──────────────────────────────────
-            var panelDados = CriarPainel(new Point(20, 20), new Size(1280, 195));
-            panelDados.Controls.Add(Lbl("DADOS DA ORDEM DE TRABALHO", new Point(20, 15), 11, true));
-            panelDados.Controls.Add(Sep(new Point(20, 45), 1240));
+            btnRemoverItem.FillColor = COR_PERIGO;
+            btnRemoverItem.ForeColor = Color.White;
+            btnRemoverItem.Font = new Font("Segoe UI Semibold", 10);
 
-            int col1 = 20, col2 = 340, col3 = 660, col4 = 980;
-            int lRow1 = 58, lRow2 = 118;
+            // Grid Itens
+            ConfigurarGridEstilo(dgvItens);
 
-            // Linha 1 — Número, Data, Estado
-            AdicionarGrupoCampo(panelDados, "Nº ORDEM", txtNumero, col1, lRow1, 200);
-            AdicionarGrupoData(panelDados, "DATA", dtpData, col2, lRow1, 190);
-            AdicionarGrupoCombo(panelDados, "ESTADO", cmbEstado, col3, lRow1, 190);
-            cmbEstado.Items.AddRange(new object[] { "Aberta", "Em Curso", "Concluída", "Cancelada" });
-            cmbEstado.SelectedIndex = 0;
-            AdicionarGrupoData(panelDados, "DATA FIM", dtpFim, col4, lRow1, 270);
-
-            // Linha 2 — Cliente, Início, Local
-            AdicionarGrupoCombo(panelDados, "CLIENTE", cmbCliente, col1, lRow2, 280);
-            AdicionarGrupoData(panelDados, "DATA INÍCIO", dtpInicio, col2, lRow2, 190);
-            AdicionarGrupoCampo(panelDados, "LOCAL DA OBRA", txtLocalObra, col3, lRow2, 590);
-
-            // ── PAINEL DESCRIÇÃO ──────────────────────────────
-            var panelDesc = CriarPainel(new Point(20, 228), new Size(1280, 90));
-            panelDesc.Controls.Add(Lbl("DESCRIÇÃO DOS TRABALHOS", new Point(20, 10), 9, true));
-            txtDescricao.Location = new Point(20, 30);
-            txtDescricao.Size = new Size(1238, 48);
-            txtDescricao.Multiline = true;
-            txtDescricao.BorderRadius = 6;
-            txtDescricao.FillColor = Color.White;
-            txtDescricao.BorderColor = Color.FromArgb(200, 200, 200);
-            txtDescricao.Font = new Font("Segoe UI", 10);
-            panelDesc.Controls.Add(txtDescricao);
-
-            // ── PAINEL ITENS ──────────────────────────────────
-            var panelItens = CriarPainel(new Point(20, 330), new Size(1280, 395));
-            panelItens.Controls.Add(Lbl("ITENS DA ORDEM DE TRABALHO", new Point(20, 15), 11, true));
-            panelItens.Controls.Add(Sep(new Point(20, 45), 1240));
-
-            // Barra adicionar
-            var barra = new Guna2Panel();
-            barra.Location = new Point(15, 55);
-            barra.Size = new Size(1248, 55);
-            barra.BorderRadius = 8;
-            barra.FillColor = Color.FromArgb(245, 247, 250);
-            barra.BorderColor = Color.FromArgb(220, 224, 230);
-            barra.BorderThickness = 1;
-
-            AdicionarGrupoCombo(barra, "SERVIÇO", cmbServico, 10, 10, 280);
-            AdicionarGrupoCampo(barra, "PREÇO UNIT.", txtPrecoItem, 305, 10, 110);
-            AdicionarGrupoNumeric(barra, "QTD", nudQuantidade, 425, 10, 80);
-            AdicionarGrupoNumeric(barra, "DESC. %", nudDesconto, 510, 10, 70);
-
-            cmbServico.SelectedIndexChanged += cmbServico_SelectedIndexChanged;
-            nudQuantidade.Minimum = 1; nudQuantidade.Value = 1; nudQuantidade.DecimalPlaces = 2;
-            nudDesconto.Minimum = 0; nudDesconto.Maximum = 100; nudDesconto.DecimalPlaces = 1;
-
-            btnAdicionarItem = CriarBotao("➕ Adicionar", 595, 18, 130, Color.FromArgb(52, 199, 89));
-            btnRemoverItem = CriarBotao("🗑️ Remover", 740, 18, 120, Color.FromArgb(255, 59, 48));
-            btnAdicionarItem.Click += BtnAdicionarItem_Click;
-            btnRemoverItem.Click += BtnRemoverItem_Click;
-            barra.Controls.AddRange(new Control[] { btnAdicionarItem, btnRemoverItem });
-            panelItens.Controls.Add(barra);
-
-            dgvItens.Location = new Point(15, 118);
-            dgvItens.Size = new Size(1248, 260);
-            ConfigurarGrid(dgvItens, false);
-            panelItens.Controls.Add(dgvItens);
-
-            // ── PAINEL RODAPÉ ─────────────────────────────────
-            var panelRodape = CriarPainel(new Point(20, 738), new Size(1280, 120));
-
-            panelRodape.Controls.Add(Lbl("OBSERVAÇÕES", new Point(20, 15), 8, false));
-            txtObservacoes.Location = new Point(20, 33);
-            txtObservacoes.Size = new Size(500, 72);
-            txtObservacoes.Multiline = true;
-            txtObservacoes.BorderRadius = 6;
-            txtObservacoes.FillColor = Color.White;
-            txtObservacoes.BorderColor = Color.FromArgb(200, 200, 200);
-            txtObservacoes.Font = new Font("Segoe UI", 9);
-            panelRodape.Controls.Add(txtObservacoes);
-
-            // Totais
-            var panelTotais = new Guna2Panel();
-            panelTotais.Location = new Point(830, 10);
-            panelTotais.Size = new Size(430, 100);
-            panelTotais.BorderRadius = 10;
-            panelTotais.FillColor = Color.FromArgb(248, 249, 252);
-            panelTotais.BorderColor = Color.FromArgb(220, 224, 230);
-            panelTotais.BorderThickness = 1;
-
-            var lblSubTxt = Lbl("SUBTOTAL:", new Point(15, 12), 10, true);
-            var lblIvaTxt = Lbl($"IVA ({IVA_PERCENTAGEM}%):", new Point(15, 40), 10, false);
-            var lblTotTxt = Lbl("TOTAL:", new Point(15, 65), 13, true);
-            lblTotTxt.ForeColor = Color.FromArgb(0, 102, 204);
-
-            ConfigurarValorLabel(lblSubTotal, new Point(230, 12), 11, false);
-            ConfigurarValorLabel(lblIva, new Point(230, 40), 10, false);
-            ConfigurarValorLabel(lblTotal, new Point(220, 63), 13, true);
-            lblTotal.ForeColor = Color.FromArgb(0, 102, 204);
-
-            panelTotais.Controls.AddRange(new Control[]
-                { lblSubTxt, lblSubTotal, lblIvaTxt, lblIva, lblTotTxt, lblTotal });
-            panelRodape.Controls.Add(panelTotais);
-
-            btnSalvar = CriarBotao("💾  Salvar", 540, 40, 130, Color.FromArgb(52, 199, 89));
-            btnImprimir = CriarBotao("📄  Gerar PDF", 685, 40, 130, Color.FromArgb(255, 149, 0));
-            btnSalvar.Click += BtnSalvar_Click;
-            btnImprimir.Click += BtnImprimir_Click;
-            panelRodape.Controls.AddRange(new Control[] { btnSalvar, btnImprimir });
-
-            // ── HISTÓRICO ─────────────────────────────────────
-            var panelHist = CriarPainel(new Point(20, 872), new Size(1280, 200));
-            panelHist.Controls.Add(Lbl("HISTÓRICO DE ORDENS DE TRABALHO", new Point(20, 15), 11, true));
-            panelHist.Controls.Add(Sep(new Point(20, 45), 1240));
-            dgvHistorico.Location = new Point(15, 55);
-            dgvHistorico.Size = new Size(1248, 130);
-            ConfigurarGrid(dgvHistorico, false);
-            dgvHistorico.CellClick += dgvHistorico_CellClick;
-            panelHist.Controls.Add(dgvHistorico);
-
-            panelScroll.Controls.AddRange(new Control[]
-                { panelDados, panelDesc, panelItens, panelRodape, panelHist });
-            Controls.Add(panelScroll);
-            ResumeLayout(false);
+            // Grid Histórico
+            ConfigurarGridEstilo(dgvHistorico);
         }
 
-        // ── HELPERS ──────────────────────────────────────────
-
-        private Guna2Panel CriarPainel(Point loc, Size size) => new Guna2Panel
+        private void ConfigurarGridEstilo(Guna2DataGridView dgv)
         {
-            Location = loc,
-            Size = size,
-            BorderRadius = 10,
-            FillColor = Color.FromArgb(250, 250, 252),
-            BorderColor = Color.FromArgb(220, 224, 230),
-            BorderThickness = 1
-        };
-
-        private Label Lbl(string txt, Point loc, int size, bool bold) => new Label
-        {
-            Text = txt,
-            Location = loc,
-            AutoSize = true,
-            Font = new Font("Segoe UI", size, bold ? FontStyle.Bold : FontStyle.Regular),
-            ForeColor = bold ? Color.FromArgb(30, 30, 45) : Color.FromArgb(100, 100, 120)
-        };
-
-        private Guna2Separator Sep(Point loc, int width) => new Guna2Separator
-        {
-            Location = loc,
-            Size = new Size(width, 2),
-            FillColor = Color.FromArgb(0, 122, 255)
-        };
-
-        private void AdicionarGrupoCampo(Control p, string label,
-            Guna2TextBox txt, int x, int y, int w)
-        {
-            p.Controls.Add(new Label
-            {
-                Text = label,
-                Location = new Point(x, y),
-                Size = new Size(w, 16),
-                Font = new Font("Segoe UI", 8, FontStyle.Bold),
-                ForeColor = Color.FromArgb(100, 100, 120)
-            });
-            txt.Location = new Point(x, y + 18); txt.Size = new Size(w, 32);
-            txt.BorderRadius = 6; txt.FillColor = Color.White;
-            txt.BorderColor = Color.FromArgb(200, 200, 200);
-            txt.Font = new Font("Segoe UI", 10);
-            p.Controls.Add(txt);
-        }
-
-        private void AdicionarGrupoCombo(Control p, string label,
-            Guna2ComboBox cmb, int x, int y, int w)
-        {
-            p.Controls.Add(new Label
-            {
-                Text = label,
-                Location = new Point(x, y),
-                Size = new Size(w, 16),
-                Font = new Font("Segoe UI", 8, FontStyle.Bold),
-                ForeColor = Color.FromArgb(100, 100, 120)
-            });
-            cmb.Location = new Point(x, y + 18); cmb.Size = new Size(w, 32);
-            cmb.BorderRadius = 6; cmb.FillColor = Color.White;
-            cmb.BorderColor = Color.FromArgb(200, 200, 200);
-            cmb.Font = new Font("Segoe UI", 10);
-            p.Controls.Add(cmb);
-        }
-
-        private void AdicionarGrupoData(Control p, string label,
-            Guna2DateTimePicker dtp, int x, int y, int w)
-        {
-            p.Controls.Add(new Label
-            {
-                Text = label,
-                Location = new Point(x, y),
-                Size = new Size(w, 16),
-                Font = new Font("Segoe UI", 8, FontStyle.Bold),
-                ForeColor = Color.FromArgb(100, 100, 120)
-            });
-            dtp.Location = new Point(x, y + 18); dtp.Size = new Size(w, 32);
-            dtp.BorderRadius = 6; dtp.FillColor = Color.White;
-            dtp.BorderColor = Color.FromArgb(200, 200, 200);
-            dtp.Format = DateTimePickerFormat.Short;
-            p.Controls.Add(dtp);
-        }
-
-        private void AdicionarGrupoNumeric(Control p, string label,
-            NumericUpDown nud, int x, int y, int w)
-        {
-            p.Controls.Add(new Label
-            {
-                Text = label,
-                Location = new Point(x, y),
-                Size = new Size(w, 16),
-                Font = new Font("Segoe UI", 8, FontStyle.Bold),
-                ForeColor = Color.FromArgb(100, 100, 120)
-            });
-            nud.Location = new Point(x, y + 18); nud.Size = new Size(w, 28);
-            nud.Font = new Font("Segoe UI", 9); nud.TextAlign = HorizontalAlignment.Right;
-            p.Controls.Add(nud);
-        }
-
-        private void ConfigurarValorLabel(Label lbl, Point loc, int size, bool bold)
-        {
-            lbl.Location = loc; lbl.Size = new Size(185, 28); lbl.Text = "0,00 MT";
-            lbl.Font = new Font("Segoe UI", size, bold ? FontStyle.Bold : FontStyle.Regular);
-            lbl.ForeColor = Color.FromArgb(30, 30, 45);
-            lbl.TextAlign = ContentAlignment.MiddleRight;
-        }
-
-        private Guna2Button CriarBotao(string texto, int x, int y,
-            int width, Color cor) => new Guna2Button
-            {
-                Text = texto,
-                Location = new Point(x, y),
-                Size = new Size(width, 40),
-                BorderRadius = 8,
-                FillColor = cor,
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI Semibold", 10),
-                HoverState = { FillColor = ControlPaint.Dark(cor, 0.1f) }
-            };
-
-        private void ConfigurarGrid(Guna2DataGridView dgv, bool editavel)
-        {
-            dgv.ReadOnly = !editavel; dgv.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgv.MultiSelect = false; dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgv.BackgroundColor = Color.White; dgv.BorderStyle = BorderStyle.None;
-            dgv.RowHeadersVisible = false; dgv.AllowUserToAddRows = false;
-            dgv.Font = new Font("Segoe UI", 9); dgv.RowTemplate.Height = 38;
+            dgv.BackgroundColor = COR_FUNDO_FORM;
+            dgv.BorderStyle = BorderStyle.None;
+            dgv.RowHeadersVisible = false;
+            dgv.AllowUserToAddRows = false;
+            dgv.Font = new Font("Segoe UI", 9);
+            dgv.RowTemplate.Height = 38;
             dgv.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-            dgv.GridColor = Color.FromArgb(230, 230, 230);
+            dgv.GridColor = COR_GRID_GRID;
+
             dgv.EnableHeadersVisualStyles = false;
-            dgv.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(25, 25, 40);
+            dgv.ColumnHeadersDefaultCellStyle.BackColor = COR_GRID_HEADER;
             dgv.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             dgv.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9, FontStyle.Bold);
             dgv.ColumnHeadersHeight = 38;
             dgv.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            dgv.DefaultCellStyle.SelectionBackColor = Color.FromArgb(210, 230, 255);
+
+            dgv.DefaultCellStyle.SelectionBackColor = COR_GRID_SELECAO;
             dgv.DefaultCellStyle.SelectionForeColor = Color.FromArgb(20, 20, 40);
-            dgv.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 255);
+            dgv.AlternatingRowsDefaultCellStyle.BackColor = COR_GRID_LINHA_ALT;
+            dgv.DefaultCellStyle.BackColor = COR_GRID_LINHA;
         }
 
-        // ── CAMPOS ───────────────────────────────────────────
-        private Guna2TextBox txtNumero = null!;
-        private Guna2TextBox txtLocalObra = null!;
-        private Guna2TextBox txtDescricao = null!;
-        private Guna2TextBox txtObservacoes = null!;
-        private Guna2TextBox txtPrecoItem = null!;
-        private Guna2ComboBox cmbCliente = null!;
-        private Guna2ComboBox cmbServico = null!;
-        private Guna2ComboBox cmbEstado = null!;
-        private Guna2DateTimePicker dtpData = null!;
-        private Guna2DateTimePicker dtpInicio = null!;
-        private Guna2DateTimePicker dtpFim = null!;
-        private NumericUpDown nudQuantidade = null!;
-        private NumericUpDown nudDesconto = null!;
-        private Guna2DataGridView dgvItens = null!;
-        private Guna2DataGridView dgvHistorico = null!;
-        private Guna2Button btnSalvar = null!;
-        private Guna2Button btnImprimir = null!;
-        private Guna2Button btnAdicionarItem = null!;
-        private Guna2Button btnRemoverItem = null!;
-        private Label lblSubTotal = null!;
-        private Label lblIva = null!;
-        private Label lblTotal = null!;
+        // ═══════════════════════════════════════════════════════════
+        // INITIALIZE COMPONENT - FORMATO DESIGNER SAFE
+        // ═══════════════════════════════════════════════════════════
+        private void InitializeComponent()
+        {
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle5 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle6 = new System.Windows.Forms.DataGridViewCellStyle();
+            this.txtNumero = new Guna.UI2.WinForms.Guna2TextBox();
+            this.txtLocalObra = new Guna.UI2.WinForms.Guna2TextBox();
+            this.txtDescricao = new Guna.UI2.WinForms.Guna2TextBox();
+            this.txtObservacoes = new Guna.UI2.WinForms.Guna2TextBox();
+            this.txtPrecoItem = new Guna.UI2.WinForms.Guna2TextBox();
+            this.cmbCliente = new Guna.UI2.WinForms.Guna2ComboBox();
+            this.cmbServico = new Guna.UI2.WinForms.Guna2ComboBox();
+            this.dtpData = new Guna.UI2.WinForms.Guna2DateTimePicker();
+            this.dtpInicio = new Guna.UI2.WinForms.Guna2DateTimePicker();
+            this.dtpFim = new Guna.UI2.WinForms.Guna2DateTimePicker();
+            this.nudQuantidade = new System.Windows.Forms.NumericUpDown();
+            this.nudDesconto = new System.Windows.Forms.NumericUpDown();
+            this.dgvItens = new Guna.UI2.WinForms.Guna2DataGridView();
+            this.dgvHistorico = new Guna.UI2.WinForms.Guna2DataGridView();
+            this.btnSalvar = new Guna.UI2.WinForms.Guna2Button();
+            this.btnImprimir = new Guna.UI2.WinForms.Guna2Button();
+            this.btnAdicionarItem = new Guna.UI2.WinForms.Guna2Button();
+            this.btnRemoverItem = new Guna.UI2.WinForms.Guna2Button();
+            this.lblSubTotal = new System.Windows.Forms.Label();
+            this.lblIva = new System.Windows.Forms.Label();
+            this.lblTotal = new System.Windows.Forms.Label();
+            this.panelScroll = new Guna.UI2.WinForms.Guna2Panel();
+            this.panelDados = new Guna.UI2.WinForms.Guna2Panel();
+            this.lblTituloDados = new System.Windows.Forms.Label();
+            this.linhaDados = new Guna.UI2.WinForms.Guna2Separator();
+            this.lblNumero = new System.Windows.Forms.Label();
+            this.lblData = new System.Windows.Forms.Label();
+            this.lblDataFim = new System.Windows.Forms.Label();
+            this.lblCliente = new System.Windows.Forms.Label();
+            this.lblDataInicio = new System.Windows.Forms.Label();
+            this.lblLocalObra = new System.Windows.Forms.Label();
+            this.panelDesc = new Guna.UI2.WinForms.Guna2Panel();
+            this.lblTituloDesc = new System.Windows.Forms.Label();
+            this.panelItens = new Guna.UI2.WinForms.Guna2Panel();
+            this.lblTituloItens = new System.Windows.Forms.Label();
+            this.linhaItens = new Guna.UI2.WinForms.Guna2Separator();
+            this.barraItens = new Guna.UI2.WinForms.Guna2Panel();
+            this.btnApagar = new Guna.UI2.WinForms.Guna2Button();
+            this.lblServicoBarra = new System.Windows.Forms.Label();
+            this.lblPrecoBarra = new System.Windows.Forms.Label();
+            this.lblQtdBarra = new System.Windows.Forms.Label();
+            this.lblDescBarra = new System.Windows.Forms.Label();
+            this.panelRodape = new Guna.UI2.WinForms.Guna2Panel();
+            this.lblObs = new System.Windows.Forms.Label();
+            this.panelTotais = new Guna.UI2.WinForms.Guna2Panel();
+            this.lblSubTxt = new System.Windows.Forms.Label();
+            this.lblIvaTxt = new System.Windows.Forms.Label();
+            this.lineSep = new Guna.UI2.WinForms.Guna2Separator();
+            this.lblTotalTxt = new System.Windows.Forms.Label();
+            this.panelHistorico = new Guna.UI2.WinForms.Guna2Panel();
+            this.lblTituloHist = new System.Windows.Forms.Label();
+            this.linhaHist = new Guna.UI2.WinForms.Guna2Separator();
+            this.lblEstado = new System.Windows.Forms.Label();
+            ((System.ComponentModel.ISupportInitialize)(this.nudQuantidade)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudDesconto)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvItens)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvHistorico)).BeginInit();
+            this.panelScroll.SuspendLayout();
+            this.panelDados.SuspendLayout();
+            this.panelDesc.SuspendLayout();
+            this.panelItens.SuspendLayout();
+            this.barraItens.SuspendLayout();
+            this.panelRodape.SuspendLayout();
+            this.panelTotais.SuspendLayout();
+            this.panelHistorico.SuspendLayout();
+            this.SuspendLayout();
+            // 
+            // txtNumero
+            // 
+            this.txtNumero.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(210)))));
+            this.txtNumero.BorderRadius = 8;
+            this.txtNumero.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.txtNumero.DefaultText = "";
+            this.txtNumero.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.txtNumero.Location = new System.Drawing.Point(25, 95);
+            this.txtNumero.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.txtNumero.Name = "txtNumero";
+            this.txtNumero.PlaceholderText = "";
+            this.txtNumero.ReadOnly = true;
+            this.txtNumero.SelectedText = "";
+            this.txtNumero.Size = new System.Drawing.Size(200, 36);
+            this.txtNumero.TabIndex = 3;
+            // 
+            // txtLocalObra
+            // 
+            this.txtLocalObra.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(210)))));
+            this.txtLocalObra.BorderRadius = 8;
+            this.txtLocalObra.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.txtLocalObra.DefaultText = "";
+            this.txtLocalObra.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.txtLocalObra.Location = new System.Drawing.Point(625, 95);
+            this.txtLocalObra.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.txtLocalObra.Name = "txtLocalObra";
+            this.txtLocalObra.PlaceholderText = "Local da obra...";
+            this.txtLocalObra.SelectedText = "";
+            this.txtLocalObra.Size = new System.Drawing.Size(280, 36);
+            this.txtLocalObra.TabIndex = 11;
+            // 
+            // txtDescricao
+            // 
+            this.txtDescricao.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(210)))));
+            this.txtDescricao.BorderRadius = 8;
+            this.txtDescricao.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.txtDescricao.DefaultText = "";
+            this.txtDescricao.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.txtDescricao.Location = new System.Drawing.Point(25, 35);
+            this.txtDescricao.Multiline = true;
+            this.txtDescricao.Name = "txtDescricao";
+            this.txtDescricao.PlaceholderText = "Descrição detalhada dos trabalhos...";
+            this.txtDescricao.SelectedText = "";
+            this.txtDescricao.Size = new System.Drawing.Size(1230, 50);
+            this.txtDescricao.TabIndex = 1;
+            // 
+            // txtObservacoes
+            // 
+            this.txtObservacoes.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(210)))));
+            this.txtObservacoes.BorderRadius = 8;
+            this.txtObservacoes.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.txtObservacoes.DefaultText = "";
+            this.txtObservacoes.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.txtObservacoes.Location = new System.Drawing.Point(25, 50);
+            this.txtObservacoes.Multiline = true;
+            this.txtObservacoes.Name = "txtObservacoes";
+            this.txtObservacoes.PlaceholderText = "Observações adicionais...";
+            this.txtObservacoes.SelectedText = "";
+            this.txtObservacoes.Size = new System.Drawing.Size(500, 55);
+            this.txtObservacoes.TabIndex = 1;
+            // 
+            // txtPrecoItem
+            // 
+            this.txtPrecoItem.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(210)))));
+            this.txtPrecoItem.BorderRadius = 6;
+            this.txtPrecoItem.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.txtPrecoItem.DefaultText = "";
+            this.txtPrecoItem.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.txtPrecoItem.Location = new System.Drawing.Point(310, 29);
+            this.txtPrecoItem.Name = "txtPrecoItem";
+            this.txtPrecoItem.PlaceholderText = "";
+            this.txtPrecoItem.ReadOnly = true;
+            this.txtPrecoItem.SelectedText = "";
+            this.txtPrecoItem.Size = new System.Drawing.Size(120, 33);
+            this.txtPrecoItem.TabIndex = 3;
+            // 
+            // cmbCliente
+            // 
+            this.cmbCliente.BackColor = System.Drawing.Color.Transparent;
+            this.cmbCliente.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(210)))));
+            this.cmbCliente.BorderRadius = 8;
+            this.cmbCliente.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
+            this.cmbCliente.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbCliente.FocusedColor = System.Drawing.Color.Empty;
+            this.cmbCliente.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.cmbCliente.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(68)))), ((int)(((byte)(88)))), ((int)(((byte)(112)))));
+            this.cmbCliente.ItemHeight = 30;
+            this.cmbCliente.Location = new System.Drawing.Point(25, 170);
+            this.cmbCliente.Name = "cmbCliente";
+            this.cmbCliente.Size = new System.Drawing.Size(250, 36);
+            this.cmbCliente.TabIndex = 9;
+            // 
+            // cmbServico
+            // 
+            this.cmbServico.BackColor = System.Drawing.Color.Transparent;
+            this.cmbServico.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(210)))));
+            this.cmbServico.BorderRadius = 6;
+            this.cmbServico.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
+            this.cmbServico.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbServico.FocusedColor = System.Drawing.Color.Empty;
+            this.cmbServico.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.cmbServico.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(68)))), ((int)(((byte)(88)))), ((int)(((byte)(112)))));
+            this.cmbServico.ItemHeight = 30;
+            this.cmbServico.Location = new System.Drawing.Point(15, 29);
+            this.cmbServico.Name = "cmbServico";
+            this.cmbServico.Size = new System.Drawing.Size(280, 36);
+            this.cmbServico.TabIndex = 1;
+            // 
+            // dtpData
+            // 
+            this.dtpData.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(210)))));
+            this.dtpData.BorderRadius = 8;
+            this.dtpData.Checked = true;
+            this.dtpData.FillColor = System.Drawing.Color.White;
+            this.dtpData.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.dtpData.Format = System.Windows.Forms.DateTimePickerFormat.Short;
+            this.dtpData.Location = new System.Drawing.Point(320, 95);
+            this.dtpData.MaxDate = new System.DateTime(9998, 12, 31, 0, 0, 0, 0);
+            this.dtpData.MinDate = new System.DateTime(1753, 1, 1, 0, 0, 0, 0);
+            this.dtpData.Name = "dtpData";
+            this.dtpData.Size = new System.Drawing.Size(160, 36);
+            this.dtpData.TabIndex = 5;
+            this.dtpData.Value = new System.DateTime(2026, 5, 8, 0, 0, 0, 0);
+            // 
+            // dtpInicio
+            // 
+            this.dtpInicio.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(210)))));
+            this.dtpInicio.BorderRadius = 8;
+            this.dtpInicio.Checked = true;
+            this.dtpInicio.FillColor = System.Drawing.Color.White;
+            this.dtpInicio.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.dtpInicio.Format = System.Windows.Forms.DateTimePickerFormat.Short;
+            this.dtpInicio.Location = new System.Drawing.Point(320, 170);
+            this.dtpInicio.MaxDate = new System.DateTime(9998, 12, 31, 0, 0, 0, 0);
+            this.dtpInicio.MinDate = new System.DateTime(1753, 1, 1, 0, 0, 0, 0);
+            this.dtpInicio.Name = "dtpInicio";
+            this.dtpInicio.Size = new System.Drawing.Size(160, 36);
+            this.dtpInicio.TabIndex = 9;
+            this.dtpInicio.Value = new System.DateTime(2026, 5, 8, 0, 0, 0, 0);
+            // 
+            // dtpFim
+            // 
+            this.dtpFim.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(210)))));
+            this.dtpFim.BorderRadius = 8;
+            this.dtpFim.Checked = true;
+            this.dtpFim.FillColor = System.Drawing.Color.White;
+            this.dtpFim.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.dtpFim.Format = System.Windows.Forms.DateTimePickerFormat.Short;
+            this.dtpFim.Location = new System.Drawing.Point(965, 95);
+            this.dtpFim.MaxDate = new System.DateTime(9998, 12, 31, 0, 0, 0, 0);
+            this.dtpFim.MinDate = new System.DateTime(1753, 1, 1, 0, 0, 0, 0);
+            this.dtpFim.Name = "dtpFim";
+            this.dtpFim.Size = new System.Drawing.Size(160, 36);
+            this.dtpFim.TabIndex = 7;
+            this.dtpFim.Value = new System.DateTime(2026, 6, 7, 0, 0, 0, 0);
+            // 
+            // nudQuantidade
+            // 
+            this.nudQuantidade.DecimalPlaces = 2;
+            this.nudQuantidade.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.nudQuantidade.Location = new System.Drawing.Point(485, 37);
+            this.nudQuantidade.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.nudQuantidade.Name = "nudQuantidade";
+            this.nudQuantidade.Size = new System.Drawing.Size(80, 25);
+            this.nudQuantidade.TabIndex = 5;
+            this.nudQuantidade.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.nudQuantidade.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
+            // nudDesconto
+            // 
+            this.nudDesconto.DecimalPlaces = 1;
+            this.nudDesconto.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.nudDesconto.Location = new System.Drawing.Point(614, 37);
+            this.nudDesconto.Name = "nudDesconto";
+            this.nudDesconto.Size = new System.Drawing.Size(80, 25);
+            this.nudDesconto.TabIndex = 7;
+            this.nudDesconto.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            // 
+            // dgvItens
+            // 
+            this.dgvItens.AllowUserToAddRows = false;
+            dataGridViewCellStyle1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(255)))));
+            this.dgvItens.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(25)))), ((int)(((byte)(40)))));
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Segoe UI", 9F);
+            dataGridViewCellStyle2.ForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgvItens.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle2;
+            this.dgvItens.ColumnHeadersHeight = 38;
+            dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle3.BackColor = System.Drawing.Color.White;
+            dataGridViewCellStyle3.Font = new System.Drawing.Font("Segoe UI", 9F);
+            dataGridViewCellStyle3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
+            dataGridViewCellStyle3.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(230)))), ((int)(((byte)(255)))));
+            dataGridViewCellStyle3.SelectionForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(20)))), ((int)(((byte)(40)))));
+            dataGridViewCellStyle3.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.dgvItens.DefaultCellStyle = dataGridViewCellStyle3;
+            this.dgvItens.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.dgvItens.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(230)))), ((int)(((byte)(230)))));
+            this.dgvItens.Location = new System.Drawing.Point(25, 145);
+            this.dgvItens.MultiSelect = false;
+            this.dgvItens.Name = "dgvItens";
+            this.dgvItens.ReadOnly = true;
+            this.dgvItens.RowHeadersVisible = false;
+            this.dgvItens.RowTemplate.Height = 38;
+            this.dgvItens.Size = new System.Drawing.Size(1230, 255);
+            this.dgvItens.TabIndex = 3;
+            this.dgvItens.ThemeStyle.AlternatingRowsStyle.BackColor = System.Drawing.Color.White;
+            this.dgvItens.ThemeStyle.AlternatingRowsStyle.Font = null;
+            this.dgvItens.ThemeStyle.AlternatingRowsStyle.ForeColor = System.Drawing.Color.Empty;
+            this.dgvItens.ThemeStyle.AlternatingRowsStyle.SelectionBackColor = System.Drawing.Color.Empty;
+            this.dgvItens.ThemeStyle.AlternatingRowsStyle.SelectionForeColor = System.Drawing.Color.Empty;
+            this.dgvItens.ThemeStyle.BackColor = System.Drawing.Color.White;
+            this.dgvItens.ThemeStyle.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(230)))), ((int)(((byte)(230)))));
+            this.dgvItens.ThemeStyle.HeaderStyle.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(88)))), ((int)(((byte)(255)))));
+            this.dgvItens.ThemeStyle.HeaderStyle.BorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
+            this.dgvItens.ThemeStyle.HeaderStyle.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.dgvItens.ThemeStyle.HeaderStyle.ForeColor = System.Drawing.Color.White;
+            this.dgvItens.ThemeStyle.HeaderStyle.HeaightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            this.dgvItens.ThemeStyle.HeaderStyle.Height = 38;
+            this.dgvItens.ThemeStyle.ReadOnly = true;
+            this.dgvItens.ThemeStyle.RowsStyle.BackColor = System.Drawing.Color.White;
+            this.dgvItens.ThemeStyle.RowsStyle.BorderStyle = System.Windows.Forms.DataGridViewCellBorderStyle.SingleHorizontal;
+            this.dgvItens.ThemeStyle.RowsStyle.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.dgvItens.ThemeStyle.RowsStyle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
+            this.dgvItens.ThemeStyle.RowsStyle.Height = 38;
+            this.dgvItens.ThemeStyle.RowsStyle.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(231)))), ((int)(((byte)(229)))), ((int)(((byte)(255)))));
+            this.dgvItens.ThemeStyle.RowsStyle.SelectionForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
+            this.dgvItens.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dgvItens_CellContentClick);
+            // 
+            // dgvHistorico
+            // 
+            this.dgvHistorico.AllowUserToAddRows = false;
+            dataGridViewCellStyle4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(255)))));
+            this.dgvHistorico.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle4;
+            dataGridViewCellStyle5.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(25)))), ((int)(((byte)(40)))));
+            dataGridViewCellStyle5.Font = new System.Drawing.Font("Segoe UI", 9F);
+            dataGridViewCellStyle5.ForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle5.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle5.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle5.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgvHistorico.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle5;
+            this.dgvHistorico.ColumnHeadersHeight = 38;
+            dataGridViewCellStyle6.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle6.BackColor = System.Drawing.Color.White;
+            dataGridViewCellStyle6.Font = new System.Drawing.Font("Segoe UI", 9F);
+            dataGridViewCellStyle6.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
+            dataGridViewCellStyle6.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(230)))), ((int)(((byte)(255)))));
+            dataGridViewCellStyle6.SelectionForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(20)))), ((int)(((byte)(40)))));
+            dataGridViewCellStyle6.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.dgvHistorico.DefaultCellStyle = dataGridViewCellStyle6;
+            this.dgvHistorico.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.dgvHistorico.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(230)))), ((int)(((byte)(230)))));
+            this.dgvHistorico.Location = new System.Drawing.Point(25, 60);
+            this.dgvHistorico.MultiSelect = false;
+            this.dgvHistorico.Name = "dgvHistorico";
+            this.dgvHistorico.ReadOnly = true;
+            this.dgvHistorico.RowHeadersVisible = false;
+            this.dgvHistorico.RowTemplate.Height = 38;
+            this.dgvHistorico.Size = new System.Drawing.Size(1230, 140);
+            this.dgvHistorico.TabIndex = 2;
+            this.dgvHistorico.ThemeStyle.AlternatingRowsStyle.BackColor = System.Drawing.Color.White;
+            this.dgvHistorico.ThemeStyle.AlternatingRowsStyle.Font = null;
+            this.dgvHistorico.ThemeStyle.AlternatingRowsStyle.ForeColor = System.Drawing.Color.Empty;
+            this.dgvHistorico.ThemeStyle.AlternatingRowsStyle.SelectionBackColor = System.Drawing.Color.Empty;
+            this.dgvHistorico.ThemeStyle.AlternatingRowsStyle.SelectionForeColor = System.Drawing.Color.Empty;
+            this.dgvHistorico.ThemeStyle.BackColor = System.Drawing.Color.White;
+            this.dgvHistorico.ThemeStyle.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(230)))), ((int)(((byte)(230)))));
+            this.dgvHistorico.ThemeStyle.HeaderStyle.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(88)))), ((int)(((byte)(255)))));
+            this.dgvHistorico.ThemeStyle.HeaderStyle.BorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
+            this.dgvHistorico.ThemeStyle.HeaderStyle.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.dgvHistorico.ThemeStyle.HeaderStyle.ForeColor = System.Drawing.Color.White;
+            this.dgvHistorico.ThemeStyle.HeaderStyle.HeaightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            this.dgvHistorico.ThemeStyle.HeaderStyle.Height = 38;
+            this.dgvHistorico.ThemeStyle.ReadOnly = true;
+            this.dgvHistorico.ThemeStyle.RowsStyle.BackColor = System.Drawing.Color.White;
+            this.dgvHistorico.ThemeStyle.RowsStyle.BorderStyle = System.Windows.Forms.DataGridViewCellBorderStyle.SingleHorizontal;
+            this.dgvHistorico.ThemeStyle.RowsStyle.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.dgvHistorico.ThemeStyle.RowsStyle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
+            this.dgvHistorico.ThemeStyle.RowsStyle.Height = 38;
+            this.dgvHistorico.ThemeStyle.RowsStyle.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(231)))), ((int)(((byte)(229)))), ((int)(((byte)(255)))));
+            this.dgvHistorico.ThemeStyle.RowsStyle.SelectionForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
+            // 
+            // btnSalvar
+            // 
+            this.btnSalvar.BorderRadius = 10;
+            this.btnSalvar.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(199)))), ((int)(((byte)(89)))));
+            this.btnSalvar.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
+            this.btnSalvar.ForeColor = System.Drawing.Color.White;
+            this.btnSalvar.Location = new System.Drawing.Point(595, 37);
+            this.btnSalvar.Name = "btnSalvar";
+            this.btnSalvar.Size = new System.Drawing.Size(160, 45);
+            this.btnSalvar.TabIndex = 3;
+            this.btnSalvar.Text = "💾 Salvar Ordem";
+            // 
+            // btnImprimir
+            // 
+            this.btnImprimir.BorderRadius = 10;
+            this.btnImprimir.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(149)))), ((int)(((byte)(0)))));
+            this.btnImprimir.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
+            this.btnImprimir.ForeColor = System.Drawing.Color.White;
+            this.btnImprimir.Location = new System.Drawing.Point(595, 95);
+            this.btnImprimir.Name = "btnImprimir";
+            this.btnImprimir.Size = new System.Drawing.Size(160, 40);
+            this.btnImprimir.TabIndex = 4;
+            this.btnImprimir.Text = "📄 Gerar PDF";
+            // 
+            // btnAdicionarItem
+            // 
+            this.btnAdicionarItem.BorderRadius = 8;
+            this.btnAdicionarItem.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(199)))), ((int)(((byte)(89)))));
+            this.btnAdicionarItem.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
+            this.btnAdicionarItem.ForeColor = System.Drawing.Color.White;
+            this.btnAdicionarItem.Location = new System.Drawing.Point(765, 28);
+            this.btnAdicionarItem.Name = "btnAdicionarItem";
+            this.btnAdicionarItem.Size = new System.Drawing.Size(115, 34);
+            this.btnAdicionarItem.TabIndex = 8;
+            this.btnAdicionarItem.Text = "➕ Adicionar";
+            // 
+            // btnRemoverItem
+            // 
+            this.btnRemoverItem.BorderRadius = 8;
+            this.btnRemoverItem.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(59)))), ((int)(((byte)(48)))));
+            this.btnRemoverItem.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
+            this.btnRemoverItem.ForeColor = System.Drawing.Color.White;
+            this.btnRemoverItem.Location = new System.Drawing.Point(924, 28);
+            this.btnRemoverItem.Name = "btnRemoverItem";
+            this.btnRemoverItem.Size = new System.Drawing.Size(115, 34);
+            this.btnRemoverItem.TabIndex = 9;
+            this.btnRemoverItem.Text = "🗑️ Remover";
+            // 
+            // lblSubTotal
+            // 
+            this.lblSubTotal.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.lblSubTotal.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(100)))));
+            this.lblSubTotal.Location = new System.Drawing.Point(280, 15);
+            this.lblSubTotal.Name = "lblSubTotal";
+            this.lblSubTotal.Size = new System.Drawing.Size(170, 25);
+            this.lblSubTotal.TabIndex = 1;
+            this.lblSubTotal.Text = "0,00 MT";
+            this.lblSubTotal.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // lblIva
+            // 
+            this.lblIva.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.lblIva.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(100)))));
+            this.lblIva.Location = new System.Drawing.Point(280, 45);
+            this.lblIva.Name = "lblIva";
+            this.lblIva.Size = new System.Drawing.Size(170, 25);
+            this.lblIva.TabIndex = 3;
+            this.lblIva.Text = "0,00 MT";
+            this.lblIva.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // lblTotal
+            // 
+            this.lblTotal.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
+            this.lblTotal.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(102)))), ((int)(((byte)(204)))));
+            this.lblTotal.Location = new System.Drawing.Point(260, 88);
+            this.lblTotal.Name = "lblTotal";
+            this.lblTotal.Size = new System.Drawing.Size(190, 30);
+            this.lblTotal.TabIndex = 6;
+            this.lblTotal.Text = "0,00 MT";
+            this.lblTotal.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // panelScroll
+            // 
+            this.panelScroll.AutoScroll = true;
+            this.panelScroll.AutoScrollMinSize = new System.Drawing.Size(0, 1100);
+            this.panelScroll.BackColor = System.Drawing.Color.White;
+            this.panelScroll.Controls.Add(this.panelDados);
+            this.panelScroll.Controls.Add(this.panelDesc);
+            this.panelScroll.Controls.Add(this.panelItens);
+            this.panelScroll.Controls.Add(this.panelRodape);
+            this.panelScroll.Controls.Add(this.panelHistorico);
+            this.panelScroll.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panelScroll.Location = new System.Drawing.Point(0, 0);
+            this.panelScroll.Name = "panelScroll";
+            this.panelScroll.Padding = new System.Windows.Forms.Padding(25);
+            this.panelScroll.Size = new System.Drawing.Size(1334, 749);
+            this.panelScroll.TabIndex = 0;
+            // 
+            // panelDados
+            // 
+            this.panelDados.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(224)))), ((int)(((byte)(230)))));
+            this.panelDados.BorderRadius = 12;
+            this.panelDados.BorderThickness = 1;
+            this.panelDados.Controls.Add(this.lblTituloDados);
+            this.panelDados.Controls.Add(this.linhaDados);
+            this.panelDados.Controls.Add(this.lblNumero);
+            this.panelDados.Controls.Add(this.txtNumero);
+            this.panelDados.Controls.Add(this.lblData);
+            this.panelDados.Controls.Add(this.dtpData);
+            this.panelDados.Controls.Add(this.lblDataFim);
+            this.panelDados.Controls.Add(this.dtpFim);
+            this.panelDados.Controls.Add(this.lblCliente);
+            this.panelDados.Controls.Add(this.cmbCliente);
+            this.panelDados.Controls.Add(this.lblDataInicio);
+            this.panelDados.Controls.Add(this.dtpInicio);
+            this.panelDados.Controls.Add(this.lblLocalObra);
+            this.panelDados.Controls.Add(this.txtLocalObra);
+            this.panelDados.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(252)))));
+            this.panelDados.Location = new System.Drawing.Point(0, 0);
+            this.panelDados.Name = "panelDados";
+            this.panelDados.Size = new System.Drawing.Size(1312, 230);
+            this.panelDados.TabIndex = 0;
+            // 
+            // lblTituloDados
+            // 
+            this.lblTituloDados.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.lblTituloDados.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(45)))));
+            this.lblTituloDados.Location = new System.Drawing.Point(25, 15);
+            this.lblTituloDados.Name = "lblTituloDados";
+            this.lblTituloDados.Size = new System.Drawing.Size(300, 28);
+            this.lblTituloDados.TabIndex = 0;
+            this.lblTituloDados.Text = "📋 DADOS DA ORDEM DE TRABALHO";
+            // 
+            // linhaDados
+            // 
+            this.linhaDados.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(255)))));
+            this.linhaDados.Location = new System.Drawing.Point(25, 48);
+            this.linhaDados.Name = "linhaDados";
+            this.linhaDados.Size = new System.Drawing.Size(1260, 2);
+            this.linhaDados.TabIndex = 1;
+            // 
+            // lblNumero
+            // 
+            this.lblNumero.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblNumero.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.lblNumero.Location = new System.Drawing.Point(22, 70);
+            this.lblNumero.Name = "lblNumero";
+            this.lblNumero.Size = new System.Drawing.Size(203, 18);
+            this.lblNumero.TabIndex = 2;
+            this.lblNumero.Text = "Nº ORDEM";
+            // 
+            // lblData
+            // 
+            this.lblData.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblData.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.lblData.Location = new System.Drawing.Point(317, 70);
+            this.lblData.Name = "lblData";
+            this.lblData.Size = new System.Drawing.Size(163, 18);
+            this.lblData.TabIndex = 4;
+            this.lblData.Text = "DATA EMISSÃO";
+            // 
+            // lblDataFim
+            // 
+            this.lblDataFim.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblDataFim.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.lblDataFim.Location = new System.Drawing.Point(962, 70);
+            this.lblDataFim.Name = "lblDataFim";
+            this.lblDataFim.Size = new System.Drawing.Size(163, 18);
+            this.lblDataFim.TabIndex = 6;
+            this.lblDataFim.Text = "DATA PREV. FIM";
+            // 
+            // lblCliente
+            // 
+            this.lblCliente.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblCliente.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.lblCliente.Location = new System.Drawing.Point(22, 145);
+            this.lblCliente.Name = "lblCliente";
+            this.lblCliente.Size = new System.Drawing.Size(253, 18);
+            this.lblCliente.TabIndex = 8;
+            this.lblCliente.Text = "CLIENTE";
+            // 
+            // lblDataInicio
+            // 
+            this.lblDataInicio.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblDataInicio.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.lblDataInicio.Location = new System.Drawing.Point(317, 145);
+            this.lblDataInicio.Name = "lblDataInicio";
+            this.lblDataInicio.Size = new System.Drawing.Size(163, 18);
+            this.lblDataInicio.TabIndex = 8;
+            this.lblDataInicio.Text = "DATA INÍCIO";
+            // 
+            // lblLocalObra
+            // 
+            this.lblLocalObra.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblLocalObra.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.lblLocalObra.Location = new System.Drawing.Point(622, 70);
+            this.lblLocalObra.Name = "lblLocalObra";
+            this.lblLocalObra.Size = new System.Drawing.Size(283, 18);
+            this.lblLocalObra.TabIndex = 10;
+            this.lblLocalObra.Text = "LOCAL DA OBRA";
+            // 
+            // panelDesc
+            // 
+            this.panelDesc.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(224)))), ((int)(((byte)(230)))));
+            this.panelDesc.BorderRadius = 12;
+            this.panelDesc.BorderThickness = 1;
+            this.panelDesc.Controls.Add(this.lblTituloDesc);
+            this.panelDesc.Controls.Add(this.txtDescricao);
+            this.panelDesc.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(252)))));
+            this.panelDesc.Location = new System.Drawing.Point(0, 245);
+            this.panelDesc.Name = "panelDesc";
+            this.panelDesc.Size = new System.Drawing.Size(1312, 105);
+            this.panelDesc.TabIndex = 1;
+            // 
+            // lblTituloDesc
+            // 
+            this.lblTituloDesc.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblTituloDesc.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(100)))));
+            this.lblTituloDesc.Location = new System.Drawing.Point(25, 10);
+            this.lblTituloDesc.Name = "lblTituloDesc";
+            this.lblTituloDesc.Size = new System.Drawing.Size(150, 18);
+            this.lblTituloDesc.TabIndex = 0;
+            this.lblTituloDesc.Text = "DESCRIÇÃO DOS TRABALHOS";
+            // 
+            // panelItens
+            // 
+            this.panelItens.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(224)))), ((int)(((byte)(230)))));
+            this.panelItens.BorderRadius = 12;
+            this.panelItens.BorderThickness = 1;
+            this.panelItens.Controls.Add(this.lblTituloItens);
+            this.panelItens.Controls.Add(this.linhaItens);
+            this.panelItens.Controls.Add(this.barraItens);
+            this.panelItens.Controls.Add(this.dgvItens);
+            this.panelItens.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(252)))));
+            this.panelItens.Location = new System.Drawing.Point(0, 365);
+            this.panelItens.Name = "panelItens";
+            this.panelItens.Size = new System.Drawing.Size(1312, 420);
+            this.panelItens.TabIndex = 2;
+            // 
+            // lblTituloItens
+            // 
+            this.lblTituloItens.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.lblTituloItens.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(45)))));
+            this.lblTituloItens.Location = new System.Drawing.Point(25, 15);
+            this.lblTituloItens.Name = "lblTituloItens";
+            this.lblTituloItens.Size = new System.Drawing.Size(300, 28);
+            this.lblTituloItens.TabIndex = 0;
+            this.lblTituloItens.Text = "🛒 ITENS DA ORDEM DE TRABALHO";
+            // 
+            // linhaItens
+            // 
+            this.linhaItens.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(255)))));
+            this.linhaItens.Location = new System.Drawing.Point(25, 48);
+            this.linhaItens.Name = "linhaItens";
+            this.linhaItens.Size = new System.Drawing.Size(1260, 2);
+            this.linhaItens.TabIndex = 1;
+            // 
+            // barraItens
+            // 
+            this.barraItens.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(224)))), ((int)(((byte)(230)))));
+            this.barraItens.BorderRadius = 8;
+            this.barraItens.BorderThickness = 1;
+            this.barraItens.Controls.Add(this.btnApagar);
+            this.barraItens.Controls.Add(this.lblServicoBarra);
+            this.barraItens.Controls.Add(this.cmbServico);
+            this.barraItens.Controls.Add(this.lblPrecoBarra);
+            this.barraItens.Controls.Add(this.txtPrecoItem);
+            this.barraItens.Controls.Add(this.lblQtdBarra);
+            this.barraItens.Controls.Add(this.nudQuantidade);
+            this.barraItens.Controls.Add(this.lblDescBarra);
+            this.barraItens.Controls.Add(this.nudDesconto);
+            this.barraItens.Controls.Add(this.btnAdicionarItem);
+            this.barraItens.Controls.Add(this.btnRemoverItem);
+            this.barraItens.FillColor = System.Drawing.Color.White;
+            this.barraItens.Location = new System.Drawing.Point(25, 60);
+            this.barraItens.Name = "barraItens";
+            this.barraItens.Size = new System.Drawing.Size(1230, 79);
+            this.barraItens.TabIndex = 2;
+            // 
+            // btnApagar
+            // 
+            this.btnApagar.BorderRadius = 8;
+            this.btnApagar.DisabledState.BorderColor = System.Drawing.Color.DarkGray;
+            this.btnApagar.DisabledState.CustomBorderColor = System.Drawing.Color.DarkGray;
+            this.btnApagar.DisabledState.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(169)))), ((int)(((byte)(169)))), ((int)(((byte)(169)))));
+            this.btnApagar.DisabledState.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(141)))), ((int)(((byte)(141)))), ((int)(((byte)(141)))));
+            this.btnApagar.FillColor = System.Drawing.Color.Red;
+            this.btnApagar.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.btnApagar.ForeColor = System.Drawing.Color.White;
+            this.btnApagar.Location = new System.Drawing.Point(1075, 25);
+            this.btnApagar.Name = "btnApagar";
+            this.btnApagar.Size = new System.Drawing.Size(130, 40);
+            this.btnApagar.TabIndex = 10;
+            this.btnApagar.Text = "🗑️ Apagar";
+            this.btnApagar.Click += new System.EventHandler(this.btnApagar_Click);
+            // 
+            // lblServicoBarra
+            // 
+            this.lblServicoBarra.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
+            this.lblServicoBarra.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.lblServicoBarra.Location = new System.Drawing.Point(15, 10);
+            this.lblServicoBarra.Name = "lblServicoBarra";
+            this.lblServicoBarra.Size = new System.Drawing.Size(280, 14);
+            this.lblServicoBarra.TabIndex = 0;
+            this.lblServicoBarra.Text = "SERVIÇO";
+            // 
+            // lblPrecoBarra
+            // 
+            this.lblPrecoBarra.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
+            this.lblPrecoBarra.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.lblPrecoBarra.Location = new System.Drawing.Point(310, 10);
+            this.lblPrecoBarra.Name = "lblPrecoBarra";
+            this.lblPrecoBarra.Size = new System.Drawing.Size(120, 14);
+            this.lblPrecoBarra.TabIndex = 2;
+            this.lblPrecoBarra.Text = "PREÇO UNIT.";
+            // 
+            // lblQtdBarra
+            // 
+            this.lblQtdBarra.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
+            this.lblQtdBarra.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.lblQtdBarra.Location = new System.Drawing.Point(495, 10);
+            this.lblQtdBarra.Name = "lblQtdBarra";
+            this.lblQtdBarra.Size = new System.Drawing.Size(80, 14);
+            this.lblQtdBarra.TabIndex = 4;
+            this.lblQtdBarra.Text = "QTD";
+            // 
+            // lblDescBarra
+            // 
+            this.lblDescBarra.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
+            this.lblDescBarra.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.lblDescBarra.Location = new System.Drawing.Point(611, 10);
+            this.lblDescBarra.Name = "lblDescBarra";
+            this.lblDescBarra.Size = new System.Drawing.Size(80, 14);
+            this.lblDescBarra.TabIndex = 6;
+            this.lblDescBarra.Text = "DESC. %";
+            // 
+            // panelRodape
+            // 
+            this.panelRodape.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(224)))), ((int)(((byte)(230)))));
+            this.panelRodape.BorderRadius = 12;
+            this.panelRodape.BorderThickness = 1;
+            this.panelRodape.Controls.Add(this.lblObs);
+            this.panelRodape.Controls.Add(this.txtObservacoes);
+            this.panelRodape.Controls.Add(this.panelTotais);
+            this.panelRodape.Controls.Add(this.btnSalvar);
+            this.panelRodape.Controls.Add(this.btnImprimir);
+            this.panelRodape.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(252)))));
+            this.panelRodape.Location = new System.Drawing.Point(0, 800);
+            this.panelRodape.Name = "panelRodape";
+            this.panelRodape.Size = new System.Drawing.Size(1312, 150);
+            this.panelRodape.TabIndex = 3;
+            // 
+            // lblObs
+            // 
+            this.lblObs.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.lblObs.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(100)))));
+            this.lblObs.Location = new System.Drawing.Point(25, 15);
+            this.lblObs.Name = "lblObs";
+            this.lblObs.Size = new System.Drawing.Size(160, 20);
+            this.lblObs.TabIndex = 0;
+            this.lblObs.Text = "📝 OBSERVAÇÕES";
+            // 
+            // panelTotais
+            // 
+            this.panelTotais.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(224)))), ((int)(((byte)(230)))));
+            this.panelTotais.BorderRadius = 10;
+            this.panelTotais.BorderThickness = 1;
+            this.panelTotais.Controls.Add(this.lblSubTxt);
+            this.panelTotais.Controls.Add(this.lblSubTotal);
+            this.panelTotais.Controls.Add(this.lblIvaTxt);
+            this.panelTotais.Controls.Add(this.lblIva);
+            this.panelTotais.Controls.Add(this.lineSep);
+            this.panelTotais.Controls.Add(this.lblTotalTxt);
+            this.panelTotais.Controls.Add(this.lblTotal);
+            this.panelTotais.FillColor = System.Drawing.Color.White;
+            this.panelTotais.Location = new System.Drawing.Point(780, 15);
+            this.panelTotais.Name = "panelTotais";
+            this.panelTotais.Size = new System.Drawing.Size(470, 120);
+            this.panelTotais.TabIndex = 2;
+            // 
+            // lblSubTxt
+            // 
+            this.lblSubTxt.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
+            this.lblSubTxt.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(100)))));
+            this.lblSubTxt.Location = new System.Drawing.Point(20, 15);
+            this.lblSubTxt.Name = "lblSubTxt";
+            this.lblSubTxt.Size = new System.Drawing.Size(150, 25);
+            this.lblSubTxt.TabIndex = 0;
+            this.lblSubTxt.Text = "SUBTOTAL:";
+            // 
+            // lblIvaTxt
+            // 
+            this.lblIvaTxt.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.lblIvaTxt.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(100)))));
+            this.lblIvaTxt.Location = new System.Drawing.Point(20, 45);
+            this.lblIvaTxt.Name = "lblIvaTxt";
+            this.lblIvaTxt.Size = new System.Drawing.Size(150, 25);
+            this.lblIvaTxt.TabIndex = 2;
+            this.lblIvaTxt.Text = "IVA:";
+            // 
+            // lineSep
+            // 
+            this.lineSep.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(200)))));
+            this.lineSep.Location = new System.Drawing.Point(20, 78);
+            this.lineSep.Name = "lineSep";
+            this.lineSep.Size = new System.Drawing.Size(430, 1);
+            this.lineSep.TabIndex = 4;
+            // 
+            // lblTotalTxt
+            // 
+            this.lblTotalTxt.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.lblTotalTxt.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(102)))), ((int)(((byte)(204)))));
+            this.lblTotalTxt.Location = new System.Drawing.Point(20, 88);
+            this.lblTotalTxt.Name = "lblTotalTxt";
+            this.lblTotalTxt.Size = new System.Drawing.Size(150, 30);
+            this.lblTotalTxt.TabIndex = 5;
+            this.lblTotalTxt.Text = "TOTAL:";
+            // 
+            // panelHistorico
+            // 
+            this.panelHistorico.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(224)))), ((int)(((byte)(230)))));
+            this.panelHistorico.BorderRadius = 12;
+            this.panelHistorico.BorderThickness = 1;
+            this.panelHistorico.Controls.Add(this.lblTituloHist);
+            this.panelHistorico.Controls.Add(this.linhaHist);
+            this.panelHistorico.Controls.Add(this.dgvHistorico);
+            this.panelHistorico.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(252)))));
+            this.panelHistorico.Location = new System.Drawing.Point(0, 965);
+            this.panelHistorico.Name = "panelHistorico";
+            this.panelHistorico.Size = new System.Drawing.Size(1312, 230);
+            this.panelHistorico.TabIndex = 4;
+            // 
+            // lblTituloHist
+            // 
+            this.lblTituloHist.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.lblTituloHist.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(45)))));
+            this.lblTituloHist.Location = new System.Drawing.Point(25, 15);
+            this.lblTituloHist.Name = "lblTituloHist";
+            this.lblTituloHist.Size = new System.Drawing.Size(350, 28);
+            this.lblTituloHist.TabIndex = 0;
+            this.lblTituloHist.Text = "📜 HISTÓRICO DE ORDENS DE TRABALHO";
+            // 
+            // linhaHist
+            // 
+            this.linhaHist.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(255)))));
+            this.linhaHist.Location = new System.Drawing.Point(25, 48);
+            this.linhaHist.Name = "linhaHist";
+            this.linhaHist.Size = new System.Drawing.Size(1260, 2);
+            this.linhaHist.TabIndex = 1;
+            // 
+            // lblEstado
+            // 
+            this.lblEstado.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblEstado.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
+            this.lblEstado.Location = new System.Drawing.Point(962, 145);
+            this.lblEstado.Name = "lblEstado";
+            this.lblEstado.Size = new System.Drawing.Size(163, 18);
+            this.lblEstado.TabIndex = 6;
+            this.lblEstado.Text = "ESTADO";
+            // 
+            // FormOrdemTrabalho
+            // 
+            this.BackColor = System.Drawing.Color.White;
+            this.ClientSize = new System.Drawing.Size(1334, 749);
+            this.Controls.Add(this.panelScroll);
+            this.MinimumSize = new System.Drawing.Size(1200, 750);
+            this.Name = "FormOrdemTrabalho";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.Text = "Gestão de Ordens de Trabalho";
+            ((System.ComponentModel.ISupportInitialize)(this.nudQuantidade)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudDesconto)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvItens)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvHistorico)).EndInit();
+            this.panelScroll.ResumeLayout(false);
+            this.panelDados.ResumeLayout(false);
+            this.panelDesc.ResumeLayout(false);
+            this.panelItens.ResumeLayout(false);
+            this.barraItens.ResumeLayout(false);
+            this.panelRodape.ResumeLayout(false);
+            this.panelTotais.ResumeLayout(false);
+            this.panelHistorico.ResumeLayout(false);
+            this.ResumeLayout(false);
+
+        }
+
+        private void dgvItens_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+        private void btnApagar_Click(object sender, EventArgs e)
+        {
+            if (dgvHistorico.CurrentRow == null) {
+                MessageBox.Show("Selecione a Ordem que deseja eliminar!", "Atencao!", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+
+                var ordem = dgvHistorico.CurrentRow.DataBoundItem as OrdemTrabalho;
+                if (ordem == null) return;
+
+                if (MessageBox.Show($"Voce tem certeza que deseja eliminar a Ordem de Trabalho{ordem.Numero}??\n Esta ação nao pode ser desfeita", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    try
+                    {
+                        AppDataConnection.ApagarOrdemTrabalho(ordem.Id);
+                        MessageBox.Show("Ordem de trabalho apagada com sucesso!", "Sucesso",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        CarregarOrdens();
+                        LimparFormulario();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Erro ao apagar: " + ex.Message, "Erro",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+
+        }
+
+        }
     }
-}

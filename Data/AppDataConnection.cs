@@ -2,7 +2,7 @@
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
+using System.Linq;
 using SqlCommand = Microsoft.Data.SqlClient.SqlCommand;
 using SqlConnection = Microsoft.Data.SqlClient.SqlConnection;
 using SqlDataReader = Microsoft.Data.SqlClient.SqlDataReader;
@@ -110,12 +110,12 @@ namespace Enterprise.Data
                     count = Convert.ToInt32(cmd.ExecuteScalar());
 
                 string sql = count == 0
-                    ? @"INSERT INTO empresa (nome,nuit,endereco,telefone,email,
-                         website,logo_path,conta_bancaria,banco,moeda_simbolo)
-                         VALUES (@nome,@nuit,@end,@tel,@email,@web,@logo,@conta,@banco,@moeda)"
-                    : @"UPDATE empresa SET nome=@nome,nuit=@nuit,endereco=@end,
-                         telefone=@tel,email=@email,website=@web,logo_path=@logo,
-                         conta_bancaria=@conta,banco=@banco,moeda_simbolo=@moeda";
+                    ? @"INSERT INTO empresa (nome, nuit, endereco, telefone, email,
+                         website, logo_path, conta_bancaria, banco, moeda_simbolo)
+                         VALUES (@nome, @nuit, @end, @tel, @email, @web, @logo, @conta, @banco, @moeda)"
+                    : @"UPDATE empresa SET nome = @nome, nuit = @nuit, endereco = @end,
+                         telefone = @tel, email = @email, website = @web, logo_path = @logo,
+                         conta_bancaria = @conta, banco = @banco, moeda_simbolo = @moeda";
 
                 using (var cmd = new SqlCommand(sql, conn))
                 {
@@ -168,7 +168,7 @@ namespace Enterprise.Data
             using (var conn = GetConnection())
             {
                 conn.Open();
-                using (var cmd = new SqlCommand("SELECT * FROM clientes WHERE id=@id", conn))
+                using (var cmd = new SqlCommand("SELECT * FROM clientes WHERE id = @id", conn))
                 {
                     cmd.Parameters.AddWithValue("@id", id);
                     using (var r = cmd.ExecuteReader())
@@ -184,16 +184,16 @@ namespace Enterprise.Data
             {
                 conn.Open();
                 string sql = c.Id == 0
-                    ? @"INSERT INTO clientes (nome,tipo)
-                         VALUES (@nome,@tipo);
+                    ? @"INSERT INTO clientes (nome, tipo)
+                         VALUES (@nome, @tipo);
                          SELECT SCOPE_IDENTITY();"
-                    : @"UPDATE clientes SET nome=@nome,tipo=@tipo WHERE id=@id";
+                    : @"UPDATE clientes SET nome = @nome, tipo = @tipo WHERE id = @id";
 
                 using (var cmd = new SqlCommand(sql, conn))
                 {
                     cmd.Parameters.AddWithValue("@nome", c.Nome);
                     cmd.Parameters.AddWithValue("@tipo", c.Tipo);
-             
+
                     if (c.Id > 0) cmd.Parameters.AddWithValue("@id", c.Id);
 
                     var res = cmd.ExecuteScalar();
@@ -202,25 +202,92 @@ namespace Enterprise.Data
             }
         }
 
-        public static void ApagarCliente(int id)
+        public static bool ApagarCliente(int id)
         {
             using (var conn = GetConnection())
             {
                 conn.Open();
-                using (var cmd = new SqlCommand("DELETE FROM clientes WHERE id=@id", conn))
+                using (var trans = conn.BeginTransaction())
                 {
-                    cmd.Parameters.AddWithValue("@id", id);
-                    cmd.ExecuteNonQuery();
+                    try
+                    {
+                        // 1. Verificar se existem cotações associadas
+                        string sqlCheckCotacoes = "SELECT COUNT(*) FROM cotacoes WHERE cliente_id = @id";
+                        using (var cmdCheck = new SqlCommand(sqlCheckCotacoes, conn, trans))
+                        {
+                            cmdCheck.Parameters.AddWithValue("@id", id);
+                            int countCotacoes = (int)cmdCheck.ExecuteScalar();
+                            if (countCotacoes > 0)
+                            {
+                                throw new Exception($"Cliente possui {countCotacoes} cotações associadas. Remova as cotações primeiro.");
+                            }
+                        }
+
+                        // 2. Verificar se existem facturas associadas
+                        string sqlCheckFacturas = "SELECT COUNT(*) FROM facturas WHERE cliente_id = @id";
+                        using (var cmdCheck = new SqlCommand(sqlCheckFacturas, conn, trans))
+                        {
+                            cmdCheck.Parameters.AddWithValue("@id", id);
+                            int countFacturas = (int)cmdCheck.ExecuteScalar();
+                            if (countFacturas > 0)
+                            {
+                                throw new Exception($"Cliente possui {countFacturas} facturas associadas. Remova as facturas primeiro.");
+                            }
+                        }
+
+                        // 3. Verificar se existem ordens de trabalho associadas
+                        string sqlCheckOrdens = "SELECT COUNT(*) FROM ordens_trabalho WHERE cliente_id = @id";
+                        using (var cmdCheck = new SqlCommand(sqlCheckOrdens, conn, trans))
+                        {
+                            cmdCheck.Parameters.AddWithValue("@id", id);
+                            int countOrdens = (int)cmdCheck.ExecuteScalar();
+                            if (countOrdens > 0)
+                            {
+                                throw new Exception($"Cliente possui {countOrdens} ordens de trabalho associadas. Remova as ordens primeiro.");
+                            }
+                        }
+
+                        // 4. Verificar se existem recibos associados
+                        string sqlCheckRecibos = "SELECT COUNT(*) FROM recibos WHERE cliente_id = @id";
+                        using (var cmdCheck = new SqlCommand(sqlCheckRecibos, conn, trans))
+                        {
+                            cmdCheck.Parameters.AddWithValue("@id", id);
+                            int countRecibos = (int)cmdCheck.ExecuteScalar();
+                            if (countRecibos > 0)
+                            {
+                                throw new Exception($"Cliente possui {countRecibos} recibos associados. Remova os recibos primeiro.");
+                            }
+                        }
+
+                        // 5. Apagar o cliente
+                        string sqlDelete = "DELETE FROM clientes WHERE id = @id";
+                        using (var cmd = new SqlCommand(sqlDelete, conn, trans))
+                        {
+                            cmd.Parameters.AddWithValue("@id", id);
+                            int rowsAffected = cmd.ExecuteNonQuery();
+
+                            if (rowsAffected == 0)
+                            {
+                                throw new Exception("Cliente não encontrado.");
+                            }
+                        }
+
+                        trans.Commit();
+                        return true;
+                    }
+                    catch
+                    {
+                        trans.Rollback();
+                        throw;
+                    }
                 }
             }
         }
-
         private static Cliente LerCliente(SqlDataReader r) => new Cliente
         {
             Id = r.GetInt32(r.GetOrdinal("id")),
             Nome = r.GetString(r.GetOrdinal("nome")),
             Tipo = r.GetString(r.GetOrdinal("tipo")),
-            
         };
 
         // ═══════════════════════════════════════════
@@ -280,12 +347,11 @@ namespace Enterprise.Data
             {
                 conn.Open();
                 string sql = s.Id == 0
-                    ? @"INSERT INTO servicos (categoria_id,codigo,nome,activo)
-                         VALUES (@cat,@cod,@nome,@activo);
+                    ? @"INSERT INTO servicos (categoria_id, codigo, nome, activo)
+                         VALUES (@cat, @cod, @nome, @activo);
                          SELECT SCOPE_IDENTITY();"
-                    : @"UPDATE servicos SET categoria_id=@cat,codigo=@cod,nome=@nome,
-                         
-                         WHERE id=@id";
+                    : @"UPDATE servicos SET categoria_id = @cat, codigo = @cod, nome = @nome, activo = @activo
+                         WHERE id = @id";
 
                 using (var cmd = new SqlCommand(sql, conn))
                 {
@@ -301,15 +367,72 @@ namespace Enterprise.Data
             }
         }
 
-        public static void ApagarServico(int id)
+        public static bool ApagarServico(int id)
         {
             using (var conn = GetConnection())
             {
                 conn.Open();
-                using (var cmd = new SqlCommand("DELETE FROM servicos WHERE id=@id", conn))
+                using (var trans = conn.BeginTransaction())
                 {
-                    cmd.Parameters.AddWithValue("@id", id);
-                    cmd.ExecuteNonQuery();
+                    try
+                    {
+                        // 1. Verificar se existem itens de cotação associados
+                        string sqlCheckItensCotacao = "SELECT COUNT(*) FROM itens_documento WHERE servico_id = @id AND tipo_documento = 'cotacao'";
+                        using (var cmdCheck = new SqlCommand(sqlCheckItensCotacao, conn, trans))
+                        {
+                            cmdCheck.Parameters.AddWithValue("@id", id);
+                            int countItems = (int)cmdCheck.ExecuteScalar();
+                            if (countItems > 0)
+                            {
+                                throw new Exception($"Serviço utilizado em {countItems} cotações. Remova os itens das cotações primeiro.");
+                            }
+                        }
+
+                        // 2. Verificar se existem itens de factura associados
+                        string sqlCheckItensFactura = "SELECT COUNT(*) FROM itens_documento WHERE servico_id = @id AND tipo_documento = 'factura'";
+                        using (var cmdCheck = new SqlCommand(sqlCheckItensFactura, conn, trans))
+                        {
+                            cmdCheck.Parameters.AddWithValue("@id", id);
+                            int countItems = (int)cmdCheck.ExecuteScalar();
+                            if (countItems > 0)
+                            {
+                                throw new Exception($"Serviço utilizado em {countItems} facturas. Remova os itens das facturas primeiro.");
+                            }
+                        }
+
+                        // 3. Verificar se existem itens de ordens de trabalho associados
+                        string sqlCheckItensOrdem = "SELECT COUNT(*) FROM itens_documento WHERE servico_id = @id AND tipo_documento = 'ordem_trabalho'";
+                        using (var cmdCheck = new SqlCommand(sqlCheckItensOrdem, conn, trans))
+                        {
+                            cmdCheck.Parameters.AddWithValue("@id", id);
+                            int countItems = (int)cmdCheck.ExecuteScalar();
+                            if (countItems > 0)
+                            {
+                                throw new Exception($"Serviço utilizado em {countItems} ordens de trabalho. Remova os itens das ordens primeiro.");
+                            }
+                        }
+
+                        // 4. Apagar o serviço
+                        string sqlDelete = "DELETE FROM servicos WHERE id = @id";
+                        using (var cmd = new SqlCommand(sqlDelete, conn, trans))
+                        {
+                            cmd.Parameters.AddWithValue("@id", id);
+                            int rowsAffected = cmd.ExecuteNonQuery();
+
+                            if (rowsAffected == 0)
+                            {
+                                throw new Exception("Serviço não encontrado.");
+                            }
+                        }
+
+                        trans.Commit();
+                        return true;
+                    }
+                    catch
+                    {
+                        trans.Rollback();
+                        throw;
+                    }
                 }
             }
         }
@@ -322,7 +445,7 @@ namespace Enterprise.Data
             Nome = r.GetString(r.GetOrdinal("nome")),
             Activo = r.GetBoolean(r.GetOrdinal("activo")),
             CriadoEm = r.GetDateTime(r.GetOrdinal("criado_em")),
-            CategoriaNome = r.IsDBNull(r.GetOrdinal("cat_nome")) ? null : r.GetString(r.GetOrdinal("cat_nome"))  // ← CORRIGIDO: string em vez de CategoriaServico
+            CategoriaNome = r.IsDBNull(r.GetOrdinal("cat_nome")) ? null : r.GetString(r.GetOrdinal("cat_nome"))
         };
 
         // ═══════════════════════════════════════════
@@ -337,7 +460,7 @@ namespace Enterprise.Data
                 string sql = @"SELECT i.*, s.nome AS svc_nome
                                FROM itens_documento i
                                LEFT JOIN servicos s ON i.servico_id = s.id
-                               WHERE i.tipo_documento=@tipo AND i.documento_id=@id
+                               WHERE i.tipo_documento = @tipo AND i.documento_id = @id
                                ORDER BY i.ordem";
 
                 using (var cmd = new SqlCommand(sql, conn))
@@ -366,7 +489,7 @@ namespace Enterprise.Data
             string tipo, int docId, List<ItemDocumento> itens)
         {
             using (var cmd = new SqlCommand(
-                "DELETE FROM itens_documento WHERE tipo_documento=@tipo AND documento_id=@id",
+                "DELETE FROM itens_documento WHERE tipo_documento = @tipo AND documento_id = @id",
                 conn, trans))
             {
                 cmd.Parameters.AddWithValue("@tipo", tipo);
@@ -378,9 +501,9 @@ namespace Enterprise.Data
             foreach (var item in itens)
             {
                 string sql = @"INSERT INTO itens_documento
-                    (tipo_documento,documento_id,servico_id,descricao,unidade,
-                     quantidade,preco_unitario,desconto,ordem)
-                    VALUES (@tipo,@docId,@svcId,@desc,@un,@qtd,@preco,@desc2,@ordem)";
+                    (tipo_documento, documento_id, servico_id, descricao, unidade,
+                     quantidade, preco_unitario, desconto, ordem)
+                    VALUES (@tipo, @docId, @svcId, @desc, @un, @qtd, @preco, @desc2, @ordem)";
 
                 using (var cmd = new SqlCommand(sql, conn, trans))
                 {
@@ -407,7 +530,9 @@ namespace Enterprise.Data
             using (var conn = GetConnection())
             {
                 conn.Open();
-                string sql = @"SELECT c.*, cl.nome AS cli_nome
+                string sql = @"SELECT c.id, c.numero, c.cliente_id, c.data, c.data_validade,
+                                      c.observacoes, c.iva, c.criado_em,
+                                      cl.nome AS cli_nome
                                FROM cotacoes c
                                LEFT JOIN clientes cl ON c.cliente_id = cl.id
                                ORDER BY c.criado_em DESC";
@@ -421,8 +546,9 @@ namespace Enterprise.Data
                             Numero = r.GetString(r.GetOrdinal("numero")),
                             ClienteId = r.GetInt32(r.GetOrdinal("cliente_id")),
                             Data = r.GetDateTime(r.GetOrdinal("data")),
-                            Estado = r.GetString(r.GetOrdinal("estado")),
-                            Iva = 16,
+                            DataValidade = r.IsDBNull(r.GetOrdinal("data_validade")) ? null : r.GetDateTime(r.GetOrdinal("data_validade")),
+                            Observacoes = r.IsDBNull(r.GetOrdinal("observacoes")) ? null : r.GetString(r.GetOrdinal("observacoes")),
+                            Iva = r.GetDecimal(r.GetOrdinal("iva")),
                             CriadoEm = r.GetDateTime(r.GetOrdinal("criado_em")),
                             Cliente = new Cliente { Nome = r.GetString(r.GetOrdinal("cli_nome")) }
                         });
@@ -438,21 +564,24 @@ namespace Enterprise.Data
             using (var conn = GetConnection())
             {
                 conn.Open();
-                using (var cmd = new SqlCommand(
-                    "SELECT * FROM cotacoes WHERE estado=@est ORDER BY criado_em DESC", conn))
-                {
-                    cmd.Parameters.AddWithValue("@est", estado);
-                    using (var r = cmd.ExecuteReader())
-                        while (r.Read())
-                            lista.Add(new Cotacao
-                            {
-                                Id = r.GetInt32(r.GetOrdinal("id")),
-                                Numero = r.GetString(r.GetOrdinal("numero")),
-                                ClienteId = r.GetInt32(r.GetOrdinal("cliente_id")),
-                                Data = r.GetDateTime(r.GetOrdinal("data")),
-                                Estado = r.GetString(r.GetOrdinal("estado"))
-                            });
-                }
+                string sql = @"SELECT id, numero, cliente_id, data, data_validade, observacoes, iva, criado_em
+                               FROM cotacoes
+                               ORDER BY criado_em DESC";
+
+                using (var cmd = new SqlCommand(sql, conn))
+                using (var r = cmd.ExecuteReader())
+                    while (r.Read())
+                        lista.Add(new Cotacao
+                        {
+                            Id = r.GetInt32(r.GetOrdinal("id")),
+                            Numero = r.GetString(r.GetOrdinal("numero")),
+                            ClienteId = r.GetInt32(r.GetOrdinal("cliente_id")),
+                            Data = r.GetDateTime(r.GetOrdinal("data")),
+                            DataValidade = r.IsDBNull(r.GetOrdinal("data_validade")) ? null : r.GetDateTime(r.GetOrdinal("data_validade")),
+                            Observacoes = r.IsDBNull(r.GetOrdinal("observacoes")) ? null : r.GetString(r.GetOrdinal("observacoes")),
+                            Iva = r.GetDecimal(r.GetOrdinal("iva")),
+                            CriadoEm = r.GetDateTime(r.GetOrdinal("criado_em"))
+                        });
             }
             return lista;
         }
@@ -462,7 +591,7 @@ namespace Enterprise.Data
             using (var conn = GetConnection())
             {
                 conn.Open();
-                using (var cmd = new SqlCommand("SELECT * FROM cotacoes WHERE id=@id", conn))
+                using (var cmd = new SqlCommand("SELECT * FROM cotacoes WHERE id = @id", conn))
                 {
                     cmd.Parameters.AddWithValue("@id", id);
                     using (var r = cmd.ExecuteReader())
@@ -475,8 +604,10 @@ namespace Enterprise.Data
                                 Numero = r.GetString(r.GetOrdinal("numero")),
                                 ClienteId = r.GetInt32(r.GetOrdinal("cliente_id")),
                                 Data = r.GetDateTime(r.GetOrdinal("data")),
-                                Iva = 16,
-                                Estado = r.GetString(r.GetOrdinal("estado"))
+                                DataValidade = r.IsDBNull(r.GetOrdinal("data_validade")) ? null : r.GetDateTime(r.GetOrdinal("data_validade")),
+                                Observacoes = r.IsDBNull(r.GetOrdinal("observacoes")) ? null : r.GetString(r.GetOrdinal("observacoes")),
+                                Iva = r.GetDecimal(r.GetOrdinal("iva")),
+                                CriadoEm = r.GetDateTime(r.GetOrdinal("criado_em"))
                             };
                             c.Itens = GetItensPorDocumento("cotacao", c.Id);
                             return c;
@@ -497,13 +628,12 @@ namespace Enterprise.Data
                     try
                     {
                         string sql = c.Id == 0
-                            ? @"INSERT INTO cotacoes (numero,cliente_id,data,data_validade,
-                                 local_obra,observacoes,iva,estado)
-                                 VALUES (@num,@cli,@data,@val,@local,@obs,@iva,@est);
+                            ? @"INSERT INTO cotacoes (numero, cliente_id, data, data_validade, observacoes, iva)
+                                 VALUES (@num, @cli, @data, @val, @obs, @iva);
                                  SELECT SCOPE_IDENTITY();"
-                            : @"UPDATE cotacoes SET cliente_id=@cli,data=@data,
-                                 data_validade=@val,local_obra=@local,observacoes=@obs,
-                                 iva=@iva,estado=@est WHERE id=@id";
+                            : @"UPDATE cotacoes SET cliente_id = @cli, data = @data,
+                                 data_validade = @val, observacoes = @obs,
+                                 iva = @iva WHERE id = @id";
 
                         int id;
                         using (var cmd = new SqlCommand(sql, conn, trans))
@@ -512,10 +642,8 @@ namespace Enterprise.Data
                             cmd.Parameters.AddWithValue("@cli", c.ClienteId);
                             cmd.Parameters.AddWithValue("@data", c.Data.ToString("yyyy-MM-dd"));
                             cmd.Parameters.AddWithValue("@val", c.DataValidade.HasValue ? c.DataValidade.Value.ToString("yyyy-MM-dd") : (object)DBNull.Value);
-                            cmd.Parameters.AddWithValue("@local", (object?)c.LocalObra ?? DBNull.Value);
                             cmd.Parameters.AddWithValue("@obs", (object?)c.Observacoes ?? DBNull.Value);
                             cmd.Parameters.AddWithValue("@iva", c.Iva);
-                            cmd.Parameters.AddWithValue("@est", c.Estado);
                             if (c.Id > 0) cmd.Parameters.AddWithValue("@id", c.Id);
 
                             var res = cmd.ExecuteScalar();
@@ -531,6 +659,56 @@ namespace Enterprise.Data
             }
         }
 
+        public static bool ApagarCotacao(int id)
+        {
+            using (var conn = GetConnection())
+            {
+                conn.Open();
+                using (var trans = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        // Verificar se a cotação foi convertida em factura
+                        string sqlCheck = "SELECT COUNT(*) FROM facturas WHERE cotacao_id = @id";
+                        using (var cmdCheck = new SqlCommand(sqlCheck, conn, trans))
+                        {
+                            cmdCheck.Parameters.AddWithValue("@id", id);
+                            int count = (int)cmdCheck.ExecuteScalar();
+                            if (count > 0)
+                            {
+                                throw new Exception($"Não é possível apagar a cotação. Foi convertida em {count} factura(s).");
+                            }
+                        }
+
+                        // Apagar os itens da cotação primeiro
+                        string sqlDeleteItens = "DELETE FROM itens_documento WHERE tipo_documento = 'cotacao' AND documento_id = @id";
+                        using (var cmdItens = new SqlCommand(sqlDeleteItens, conn, trans))
+                        {
+                            cmdItens.Parameters.AddWithValue("@id", id);
+                            cmdItens.ExecuteNonQuery();
+                        }
+
+                        // Apagar a cotação
+                        string sqlDelete = "DELETE FROM cotacoes WHERE id = @id";
+                        using (var cmd = new SqlCommand(sqlDelete, conn, trans))
+                        {
+                            cmd.Parameters.AddWithValue("@id", id);
+                            int rowsAffected = cmd.ExecuteNonQuery();
+                            if (rowsAffected == 0) throw new Exception("Cotação não encontrada.");
+                        }
+
+                        trans.Commit();
+                        return true;
+                    }
+                    catch
+                    {
+                        trans.Rollback();
+                        throw;
+                    }
+                }
+            }
+        }
+
         // ═══════════════════════════════════════════
         // FACTURAS
         // ═══════════════════════════════════════════
@@ -540,16 +718,21 @@ namespace Enterprise.Data
             using (var conn = GetConnection())
             {
                 conn.Open();
-                string sql = @"SELECT f.*, cl.nome AS cli_nome,
-                               ISNULL((SELECT SUM(valor_pago) FROM recibos WHERE factura_id=f.id),0) AS total_pago
-                               FROM facturas f
-                               LEFT JOIN clientes cl ON f.cliente_id = cl.id
-                               ORDER BY f.criado_em DESC";
+                string sql = @"SELECT f.id, f.numero, f.cliente_id, f.cotacao_id, 
+                              f.data, f.data_vencimento, f.observacoes, 
+                              f.iva, f.criado_em,
+                              cl.nome AS cli_nome,
+                              ISNULL((SELECT SUM(valor_pago) FROM recibos WHERE factura_id = f.id), 0) AS total_pago
+                       FROM facturas f
+                       LEFT JOIN clientes cl ON f.cliente_id = cl.id
+                       ORDER BY f.criado_em DESC";
 
                 using (var cmd = new SqlCommand(sql, conn))
                 using (var r = cmd.ExecuteReader())
+                {
                     while (r.Read())
-                        lista.Add(new Factura
+                    {
+                        var f = new Factura
                         {
                             Id = r.GetInt32(r.GetOrdinal("id")),
                             Numero = r.GetString(r.GetOrdinal("numero")),
@@ -557,19 +740,22 @@ namespace Enterprise.Data
                             CotacaoId = r.IsDBNull(r.GetOrdinal("cotacao_id")) ? null : r.GetInt32(r.GetOrdinal("cotacao_id")),
                             Data = r.GetDateTime(r.GetOrdinal("data")),
                             DataVencimento = r.IsDBNull(r.GetOrdinal("data_vencimento")) ? null : r.GetDateTime(r.GetOrdinal("data_vencimento")),
-                            LocalObra = r.IsDBNull(r.GetOrdinal("local_obra")) ? null : r.GetString(r.GetOrdinal("local_obra")),
                             Observacoes = r.IsDBNull(r.GetOrdinal("observacoes")) ? null : r.GetString(r.GetOrdinal("observacoes")),
                             Iva = r.GetDecimal(r.GetOrdinal("iva")),
-                            Estado = r.GetString(r.GetOrdinal("estado")),
                             TotalPago = r.GetDecimal(r.GetOrdinal("total_pago")),
                             CriadoEm = r.GetDateTime(r.GetOrdinal("criado_em")),
                             Cliente = new Cliente { Nome = r.GetString(r.GetOrdinal("cli_nome")) }
-                        });
+                        };
+                        lista.Add(f);
+                    }
+                }
             }
-            foreach (var f in lista)
-                f.Itens = GetItensPorDocumento("factura", f.Id);
+
+        
             return lista;
         }
+
+        // FACTURAS PENDENTES (CORRIGIDO)
 
         public static List<Factura> GetFacturasPendentes(int clienteId)
         {
@@ -577,17 +763,23 @@ namespace Enterprise.Data
             using (var conn = GetConnection())
             {
                 conn.Open();
-                string sql = @"SELECT f.*,
-                               ISNULL((SELECT SUM(valor_pago) FROM recibos WHERE factura_id=f.id),0) AS total_pago
-                               FROM facturas f
-                               WHERE f.cliente_id=@cliId
-                               AND f.estado IN ('Pendente','Parcial')
-                               ORDER BY f.data DESC";
+
+                string sql = @"SELECT 
+                            id, 
+                            numero, 
+                            cliente_id, 
+                            data,
+                            iva
+                       FROM facturas
+                       WHERE cliente_id = @cliId
+                       ORDER BY data DESC";
 
                 using (var cmd = new SqlCommand(sql, conn))
                 {
                     cmd.Parameters.AddWithValue("@cliId", clienteId);
+
                     using (var r = cmd.ExecuteReader())
+                    {
                         while (r.Read())
                         {
                             var f = new Factura
@@ -597,14 +789,16 @@ namespace Enterprise.Data
                                 ClienteId = r.GetInt32(r.GetOrdinal("cliente_id")),
                                 Data = r.GetDateTime(r.GetOrdinal("data")),
                                 Iva = r.GetDecimal(r.GetOrdinal("iva")),
-                                Estado = r.GetString(r.GetOrdinal("estado")),
-                                TotalPago = r.GetDecimal(r.GetOrdinal("total_pago"))
+                                TotalPago = 0,  // Valor padrão
+                                Itens = new List<ItemDocumento>()  // Lista vazia
                             };
-                            f.Itens = GetItensPorDocumento("factura", f.Id);
+
                             lista.Add(f);
                         }
+                    }
                 }
             }
+
             return lista;
         }
 
@@ -618,13 +812,13 @@ namespace Enterprise.Data
                     try
                     {
                         string sql = f.Id == 0
-                            ? @"INSERT INTO facturas (numero,cliente_id,cotacao_id,data,
-                                 data_vencimento,local_obra,observacoes,iva,estado)
-                                 VALUES (@num,@cli,@cot,@data,@venc,@local,@obs,@iva,@est);
+                            ? @"INSERT INTO facturas (numero, cliente_id, cotacao_id, data,
+                                 data_vencimento, observacoes, iva)
+                                 VALUES (@num, @cli, @cot, @data, @venc, @obs, @iva);
                                  SELECT SCOPE_IDENTITY();"
-                            : @"UPDATE facturas SET cliente_id=@cli,cotacao_id=@cot,data=@data,
-                                 data_vencimento=@venc,local_obra=@local,observacoes=@obs,
-                                 iva=@iva,estado=@est WHERE id=@id";
+                            : @"UPDATE facturas SET cliente_id = @cli, cotacao_id = @cot, data = @data,
+                                 data_vencimento = @venc, observacoes = @obs,
+                                 iva = @iva WHERE id = @id";
 
                         int id;
                         using (var cmd = new SqlCommand(sql, conn, trans))
@@ -634,10 +828,8 @@ namespace Enterprise.Data
                             cmd.Parameters.AddWithValue("@cot", (object?)f.CotacaoId ?? DBNull.Value);
                             cmd.Parameters.AddWithValue("@data", f.Data.ToString("yyyy-MM-dd"));
                             cmd.Parameters.AddWithValue("@venc", f.DataVencimento.HasValue ? f.DataVencimento.Value.ToString("yyyy-MM-dd") : (object)DBNull.Value);
-                            cmd.Parameters.AddWithValue("@local", (object?)f.LocalObra ?? DBNull.Value);
                             cmd.Parameters.AddWithValue("@obs", (object?)f.Observacoes ?? DBNull.Value);
                             cmd.Parameters.AddWithValue("@iva", f.Iva);
-                            cmd.Parameters.AddWithValue("@est", f.Estado);
                             if (f.Id > 0) cmd.Parameters.AddWithValue("@id", f.Id);
 
                             var res = cmd.ExecuteScalar();
@@ -649,6 +841,117 @@ namespace Enterprise.Data
                         return id;
                     }
                     catch { trans.Rollback(); throw; }
+                }
+            }
+        }
+
+        private static void ActualizarEstadoFactura(SqlConnection conn, SqlTransaction? trans, int facturaId)
+        {
+            bool usarTransacao = (trans != null);
+            SqlTransaction? transacao = trans;
+
+            if (!usarTransacao)
+            {
+                conn.Open();
+                transacao = conn.BeginTransaction();
+            }
+
+            try
+            {
+                string sqlInfo = @"SELECT
+                ISNULL((SELECT SUM(i.quantidade * i.preco_unitario * (1 - i.desconto/100))
+                        FROM itens_documento i
+                        WHERE i.tipo_documento = 'factura' AND i.documento_id = @id), 0)
+                * (1 + (SELECT ISNULL(iva, 0)/100 FROM facturas WHERE id = @id)) AS total,
+                ISNULL((SELECT SUM(valor_pago) FROM recibos WHERE factura_id = @id), 0) AS pago";
+
+                decimal total = 0, pago = 0;
+
+                using (var cmd = new SqlCommand(sqlInfo, conn, transacao))
+                {
+                    cmd.Parameters.AddWithValue("@id", facturaId);
+                    using (var r = cmd.ExecuteReader())
+                        if (r.Read())
+                        {
+                            total = r.GetDecimal(0);
+                            pago = r.GetDecimal(1);
+                        }
+                }
+
+                // Determinar estado baseado no pagamento
+                string estado = pago <= 0 ? "Pendente"
+                              : pago >= total ? "Paga"
+                              : "Parcial";
+
+                using (var cmd = new SqlCommand("UPDATE facturas SET estado = @estado WHERE id = @id", conn, transacao))
+                {
+                    cmd.Parameters.AddWithValue("@estado", estado);
+                    cmd.Parameters.AddWithValue("@id", facturaId);
+                    cmd.ExecuteNonQuery();
+                }
+
+                if (!usarTransacao)
+                    transacao?.Commit();
+            }
+            catch
+            {
+                if (!usarTransacao)
+                    transacao?.Rollback();
+                throw;
+            }
+            finally
+            {
+                if (!usarTransacao)
+                    conn.Close();
+            }
+        }
+
+        public static bool ApagarFactura(int id)
+        {
+            using (var conn = GetConnection())
+            {
+                conn.Open();
+                using (var trans = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        // Verificar se existem recibos associados
+                        string sqlCheck = "SELECT COUNT(*) FROM recibos WHERE factura_id = @id";
+                        using (var cmdCheck = new SqlCommand(sqlCheck, conn, trans))
+                        {
+                            cmdCheck.Parameters.AddWithValue("@id", id);
+                            int count = (int)cmdCheck.ExecuteScalar();
+                            if (count > 0)
+                            {
+                                throw new Exception($"Não é possível apagar a factura. Possui {count} recibo(s) associado(s).");
+                            }
+                        }
+
+                        // Apagar os itens da factura primeiro
+                        string sqlDeleteItens = "DELETE FROM itens_documento WHERE tipo_documento = 'factura' AND documento_id = @id";
+                        using (var cmdItens = new SqlCommand(sqlDeleteItens, conn, trans))
+                        {
+                            cmdItens.Parameters.AddWithValue("@id", id);
+                            cmdItens.ExecuteNonQuery();
+                        }
+
+                        // Apagar a factura
+                        string sqlDelete = "DELETE FROM facturas WHERE id = @id";
+                        using (var cmd = new SqlCommand(sqlDelete, conn, trans))
+                        {
+                            cmd.Parameters.AddWithValue("@id", id);
+                            int rowsAffected = cmd.ExecuteNonQuery();
+                            if (rowsAffected == 0) throw new Exception("Factura não encontrada.");
+                        }
+
+                        trans.Commit();
+                        return true;
+                    }
+                    catch
+                    {
+                        trans.Rollback();
+                        throw;
+                    }
                 }
             }
         }
@@ -665,7 +968,7 @@ namespace Enterprise.Data
                 string sql = @"SELECT r.*, cl.nome AS cli_nome, f.numero AS fat_numero
                                FROM recibos r
                                LEFT JOIN clientes cl ON r.cliente_id = cl.id
-                               LEFT JOIN facturas f  ON r.factura_id = f.id
+                               LEFT JOIN facturas f ON r.factura_id = f.id
                                ORDER BY r.criado_em DESC";
 
                 using (var cmd = new SqlCommand(sql, conn))
@@ -700,13 +1003,13 @@ namespace Enterprise.Data
                     try
                     {
                         string sql = rec.Id == 0
-                            ? @"INSERT INTO recibos (numero,factura_id,cliente_id,data,
-                                 valor_pago,forma_pagamento,referencia,observacoes)
-                                 VALUES (@num,@fat,@cli,@data,@val,@forma,@ref,@obs);
+                            ? @"INSERT INTO recibos (numero, factura_id, cliente_id, data,
+                                 valor_pago, forma_pagamento, referencia, observacoes)
+                                 VALUES (@num, @fat, @cli, @data, @val, @forma, @ref, @obs);
                                  SELECT SCOPE_IDENTITY();"
-                            : @"UPDATE recibos SET factura_id=@fat,cliente_id=@cli,data=@data,
-                                 valor_pago=@val,forma_pagamento=@forma,referencia=@ref,
-                                 observacoes=@obs WHERE id=@id";
+                            : @"UPDATE recibos SET factura_id = @fat, cliente_id = @cli, data = @data,
+                                 valor_pago = @val, forma_pagamento = @forma, referencia = @ref,
+                                 observacoes = @obs WHERE id = @id";
 
                         int id;
                         using (var cmd = new SqlCommand(sql, conn, trans))
@@ -725,7 +1028,6 @@ namespace Enterprise.Data
                             id = rec.Id == 0 ? Convert.ToInt32(res) : rec.Id;
                         }
 
-                        ActualizarEstadoFactura(conn, trans, rec.FacturaId);
                         trans.Commit();
                         return id;
                     }
@@ -734,39 +1036,48 @@ namespace Enterprise.Data
             }
         }
 
-        private static void ActualizarEstadoFactura(SqlConnection conn,
-            SqlTransaction trans, int facturaId)
+        public static bool ApagarRecibo(int id)
         {
-            string sqlInfo = @"SELECT
-                ISNULL((SELECT SUM(i.quantidade * i.preco_unitario * (1 - i.desconto/100))
-                        FROM itens_documento i
-                        WHERE i.tipo_documento='factura' AND i.documento_id=@id), 0)
-                * (1 + (SELECT iva/100 FROM facturas WHERE id=@id)) AS total,
-                ISNULL((SELECT SUM(valor_pago) FROM recibos WHERE factura_id=@id), 0) AS pago";
-
-            decimal total = 0, pago = 0;
-
-            using (var cmd = new SqlCommand(sqlInfo, conn, trans))
+            using (var conn = GetConnection())
             {
-                cmd.Parameters.AddWithValue("@id", facturaId);
-                using (var r = cmd.ExecuteReader())
-                    if (r.Read())
+                conn.Open();
+                using (var trans = conn.BeginTransaction())
+                {
+                    try
                     {
-                        total = r.GetDecimal(0);
-                        pago = r.GetDecimal(1);
+                        // Verificar se o recibo existe
+                        string sqlCheck = "SELECT factura_id FROM recibos WHERE id = @id";
+                        int facturaId = 0;
+
+                        using (var cmdCheck = new SqlCommand(sqlCheck, conn, trans))
+                        {
+                            cmdCheck.Parameters.AddWithValue("@id", id);
+                            var result = cmdCheck.ExecuteScalar();
+                            if (result == null) throw new Exception("Recibo não encontrado.");
+                            facturaId = Convert.ToInt32(result);
+                        }
+
+                        // Apagar o recibo
+                        string sqlDelete = "DELETE FROM recibos WHERE id = @id";
+                        using (var cmd = new SqlCommand(sqlDelete, conn, trans))
+                        {
+                            cmd.Parameters.AddWithValue("@id", id);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        trans.Commit();
+
+                        // Actualizar estado da factura após remover o recibo
+                        ActualizarEstadoFactura(conn, null, facturaId);
+
+                        return true;
                     }
-            }
-
-            string estado = pago <= 0 ? "Pendente"
-                          : pago >= total ? "Paga"
-                          : "Parcial";
-
-            using (var cmd = new SqlCommand(
-                "UPDATE facturas SET estado=@est WHERE id=@id", conn, trans))
-            {
-                cmd.Parameters.AddWithValue("@est", estado);
-                cmd.Parameters.AddWithValue("@id", facturaId);
-                cmd.ExecuteNonQuery();
+                    catch
+                    {
+                        trans.Rollback();
+                        throw;
+                    }
+                }
             }
         }
 
@@ -779,7 +1090,9 @@ namespace Enterprise.Data
             using (var conn = GetConnection())
             {
                 conn.Open();
-                string sql = @"SELECT o.*, cl.nome AS cli_nome
+                string sql = @"SELECT o.id, o.numero, o.cliente_id, o.data, o.data_inicio,
+                                      o.data_fim, o.descricao, o.observacoes, o.iva, o.criado_em,
+                                      cl.nome AS cli_nome
                                FROM ordens_trabalho o
                                LEFT JOIN clientes cl ON o.cliente_id = cl.id
                                ORDER BY o.criado_em DESC";
@@ -795,11 +1108,9 @@ namespace Enterprise.Data
                             Data = r.GetDateTime(r.GetOrdinal("data")),
                             DataInicio = r.IsDBNull(r.GetOrdinal("data_inicio")) ? null : r.GetDateTime(r.GetOrdinal("data_inicio")),
                             DataFim = r.IsDBNull(r.GetOrdinal("data_fim")) ? null : r.GetDateTime(r.GetOrdinal("data_fim")),
-                            LocalObra = r.IsDBNull(r.GetOrdinal("local_obra")) ? null : r.GetString(r.GetOrdinal("local_obra")),
                             Descricao = r.IsDBNull(r.GetOrdinal("descricao")) ? null : r.GetString(r.GetOrdinal("descricao")),
                             Observacoes = r.IsDBNull(r.GetOrdinal("observacoes")) ? null : r.GetString(r.GetOrdinal("observacoes")),
                             Iva = r.GetDecimal(r.GetOrdinal("iva")),
-                            Estado = r.GetString(r.GetOrdinal("estado")),
                             CriadoEm = r.GetDateTime(r.GetOrdinal("criado_em")),
                             Cliente = new Cliente { Nome = r.GetString(r.GetOrdinal("cli_nome")) }
                         });
@@ -819,14 +1130,14 @@ namespace Enterprise.Data
                     try
                     {
                         string sql = o.Id == 0
-                            ? @"INSERT INTO ordens_trabalho (numero,cliente_id,data,data_inicio,
-                                 data_fim,local_obra,descricao,observacoes,iva,estado)
-                                 VALUES (@num,@cli,@data,@ini,@fim,@local,@desc,@obs,@iva,@est);
+                            ? @"INSERT INTO ordens_trabalho (numero, cliente_id, data, data_inicio,
+                                 data_fim, descricao, observacoes, iva)
+                                 VALUES (@num, @cli, @data, @ini, @fim, @desc, @obs, @iva);
                                  SELECT SCOPE_IDENTITY();"
-                            : @"UPDATE ordens_trabalho SET cliente_id=@cli,data=@data,
-                                 data_inicio=@ini,data_fim=@fim,local_obra=@local,
-                                 descricao=@desc,observacoes=@obs,iva=@iva,estado=@est
-                                 WHERE id=@id";
+                            : @"UPDATE ordens_trabalho SET cliente_id = @cli, data = @data,
+                                 data_inicio = @ini, data_fim = @fim,
+                                 descricao = @desc, observacoes = @obs, iva = @iva
+                                 WHERE id = @id";
 
                         int id;
                         using (var cmd = new SqlCommand(sql, conn, trans))
@@ -836,11 +1147,9 @@ namespace Enterprise.Data
                             cmd.Parameters.AddWithValue("@data", o.Data.ToString("yyyy-MM-dd"));
                             cmd.Parameters.AddWithValue("@ini", o.DataInicio.HasValue ? o.DataInicio.Value.ToString("yyyy-MM-dd") : (object)DBNull.Value);
                             cmd.Parameters.AddWithValue("@fim", o.DataFim.HasValue ? o.DataFim.Value.ToString("yyyy-MM-dd") : (object)DBNull.Value);
-                            cmd.Parameters.AddWithValue("@local", (object?)o.LocalObra ?? DBNull.Value);
                             cmd.Parameters.AddWithValue("@desc", (object?)o.Descricao ?? DBNull.Value);
                             cmd.Parameters.AddWithValue("@obs", (object?)o.Observacoes ?? DBNull.Value);
                             cmd.Parameters.AddWithValue("@iva", o.Iva);
-                            cmd.Parameters.AddWithValue("@est", o.Estado);
                             if (o.Id > 0) cmd.Parameters.AddWithValue("@id", o.Id);
 
                             var res = cmd.ExecuteScalar();
@@ -852,6 +1161,44 @@ namespace Enterprise.Data
                         return id;
                     }
                     catch { trans.Rollback(); throw; }
+                }
+            }
+        }
+
+        public static bool ApagarOrdemTrabalho(int id)
+        {
+            using (var conn = GetConnection())
+            {
+                conn.Open();
+                using (var trans = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        // Apagar os itens da ordem primeiro
+                        string sqlDeleteItens = "DELETE FROM itens_documento WHERE tipo_documento = 'ordem_trabalho' AND documento_id = @id";
+                        using (var cmdItens = new SqlCommand(sqlDeleteItens, conn, trans))
+                        {
+                            cmdItens.Parameters.AddWithValue("@id", id);
+                            cmdItens.ExecuteNonQuery();
+                        }
+
+                        // Apagar a ordem
+                        string sqlDelete = "DELETE FROM ordens_trabalho WHERE id = @id";
+                        using (var cmd = new SqlCommand(sqlDelete, conn, trans))
+                        {
+                            cmd.Parameters.AddWithValue("@id", id);
+                            int rowsAffected = cmd.ExecuteNonQuery();
+                            if (rowsAffected == 0) throw new Exception("Ordem de trabalho não encontrada.");
+                        }
+
+                        trans.Commit();
+                        return true;
+                    }
+                    catch
+                    {
+                        trans.Rollback();
+                        throw;
+                    }
                 }
             }
         }

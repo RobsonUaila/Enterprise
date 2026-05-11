@@ -14,8 +14,8 @@ namespace Enterprise.Models
         public DateTime? DataVencimento { get; set; }
         public string? LocalObra { get; set; }
         public string? Observacoes { get; set; }
-        public decimal Iva { get; set; } = 17;
-        public string Estado { get; set; } = "Pendente";
+        public decimal Iva { get; set; } = 16;
+        
         public DateTime CriadoEm { get; set; }
 
         public List<ItemDocumento> Itens { get; set; } = new List<ItemDocumento>();
@@ -25,6 +25,8 @@ namespace Enterprise.Models
         public decimal Total => SubTotal + ValorIva;
         public decimal TotalPago { get; set; }
         public decimal TotalEmDivida => Total - TotalPago;
+
+       
 
         public Cliente? Cliente { get; set; }
         public Cotacao? Cotacao { get; set; }

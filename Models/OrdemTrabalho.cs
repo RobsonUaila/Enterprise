@@ -15,8 +15,8 @@ namespace Enterprise.Models
         public string? LocalObra { get; set; }
         public string? Descricao { get; set; }
         public string? Observacoes { get; set; }
-        public decimal Iva { get; set; } = 17;
-        public string Estado { get; set; } = "Aberta";
+        public decimal Iva { get; set; } = 16;
+        
         public DateTime CriadoEm { get; set; }
 
         public List<ItemDocumento> Itens { get; set; } = new List<ItemDocumento>();

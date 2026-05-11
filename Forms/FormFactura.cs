@@ -13,7 +13,8 @@ namespace Enterprise.Forms
     {
         private List<ItemDocumento> _itens = new List<ItemDocumento>();
         private Factura? _facturaActual = null;
-        private const decimal IVA_PERCENTAGEM = 17m;
+        private const decimal IVA_PERCENTAGEM = 16m;
+        private bool _isLoading = true;
 
         // ═══════════════════════════════════════════════════════════
         // CORES PADRÃO DO SISTEMA (Design System)
@@ -47,7 +48,6 @@ namespace Enterprise.Forms
         private Guna2ComboBox cmbCliente;
         private Guna2ComboBox cmbServico;
         private Guna2ComboBox cmbCotacao;
-        private Guna2ComboBox cmbEstado;
         private Guna2DateTimePicker dtpData;
         private NumericUpDown nudQuantidade;
         private NumericUpDown nudDesconto;
@@ -60,13 +60,13 @@ namespace Enterprise.Forms
         private Guna2Button btnConverterCotacao;
         private Label lblSubTotal;
         private Label lblIva;
+        private Label lblTotal;
         private Guna2Panel panelScroll;
         private Guna2Panel panelDados;
         private Label lblTituloDados;
         private Guna2Separator linhaDados;
         private Label lblNumero;
         private Label lblData;
-        private Label lblEstado;
         private Label lblCliente;
         private Label lblCotacao;
         private Guna2Panel panelItens;
@@ -86,20 +86,89 @@ namespace Enterprise.Forms
         private Label lblTotalTxt;
         private Guna2Panel panelHistorico;
         private Label lblTituloHist;
+        private Guna2Button bntApagarFactura;
         private Guna2Separator linhaHist;
-        private Label lblTotal;
 
+        // ═══════════════════════════════════════════════════════════
+        // CONSTRUTOR
+        // ═══════════════════════════════════════════════════════════
         public FormFactura()
         {
             InitializeComponent();
-            AplicarEstilosCustomizados();
-            CarregarDados();
+            this.Load += FormFactura_Load;
+        }
+
+        private void FormFactura_Load(object sender, EventArgs e)
+        {
+            _isLoading = true;
+
+            try
+            {
+                AplicarEstilosCustomizados();
+                ConfigurarEventos();
+                CarregarDados();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erro ao inicializar formulário: " + ex.Message,
+                    "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+
+        private void ConfigurarEventos()
+        {
+            if (btnConverterCotacao != null)
+                btnConverterCotacao.Click += BtnConverterCotacao_Click;
+
+            if (btnAdicionarItem != null)
+                btnAdicionarItem.Click += BtnAdicionarItem_Click;
+
+            if (btnRemoverItem != null)
+                btnRemoverItem.Click += BtnRemoverItem_Click;
+
+            if (btnSalvar != null)
+                btnSalvar.Click += BtnSalvar_Click;
+
+            if (btnImprimir != null)
+                btnImprimir.Click += BtnImprimir_Click;
+
+            if (cmbServico != null)
+                cmbServico.SelectedIndexChanged += cmbServico_SelectedIndexChanged;
+
+            if (dgvHistorico != null)
+                dgvHistorico.CellClick += dgvHistorico_CellClick;
         }
 
         private void CarregarDados()
         {
             try
             {
+                // Verificar se os controlos existem
+                if (cmbCliente == null)
+                {
+                    MessageBox.Show("Erro: Controlo cmbCliente não inicializado.", "Erro",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                if (cmbServico == null)
+                {
+                    MessageBox.Show("Erro: Controlo cmbServico não inicializado.", "Erro",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                if (cmbCotacao == null)
+                {
+                    MessageBox.Show("Erro: Controlo cmbCotacao não inicializado.", "Erro",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
                 var clientes = AppDataConnection.GetClientes();
                 cmbCliente.DataSource = clientes;
                 cmbCliente.DisplayMember = "Nome";
@@ -110,19 +179,23 @@ namespace Enterprise.Forms
                 cmbServico.DisplayMember = "Nome";
                 cmbServico.ValueMember = "Id";
 
-                var cotacoes = AppDataConnection.GetCotacoesPorEstado("Aprovada");
+                var cotacoes = AppDataConnection.GetCotacoes();
                 cmbCotacao.DataSource = cotacoes;
                 cmbCotacao.DisplayMember = "Numero";
                 cmbCotacao.ValueMember = "Id";
 
-                txtNumero.Text = AppDataConnection.GerarNumero("facturas", "FAT");
-                dtpData.Value = DateTime.Now;
+                if (txtNumero != null)
+                    txtNumero.Text = AppDataConnection.GerarNumero("facturas", "FAT");
+
+                if (dtpData != null)
+                    dtpData.Value = DateTime.Now;
 
                 CarregarFacturas();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erro ao carregar dados: " + ex.Message);
+                MessageBox.Show("Erro ao carregar dados: " + ex.Message, "Erro",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -130,6 +203,8 @@ namespace Enterprise.Forms
         {
             try
             {
+                if (dgvHistorico == null) return;
+
                 var lista = AppDataConnection.GetFacturas();
                 dgvHistorico.DataSource = lista;
 
@@ -142,9 +217,10 @@ namespace Enterprise.Forms
                         if (dgvHistorico.Columns.Contains(col))
                             dgvHistorico.Columns[col].Visible = false;
 
-                    if (dgvHistorico.Columns.Contains("Numero")) dgvHistorico.Columns["Numero"].HeaderText = "Nº FACTURA";
-                    if (dgvHistorico.Columns.Contains("Data")) dgvHistorico.Columns["Data"].HeaderText = "DATA";
-                    if (dgvHistorico.Columns.Contains("Estado")) dgvHistorico.Columns["Estado"].HeaderText = "ESTADO";
+                    if (dgvHistorico.Columns.Contains("Numero"))
+                        dgvHistorico.Columns["Numero"].HeaderText = "Nº FACTURA";
+                    if (dgvHistorico.Columns.Contains("Data"))
+                        dgvHistorico.Columns["Data"].HeaderText = "DATA";
                     if (dgvHistorico.Columns.Contains("Total"))
                     {
                         dgvHistorico.Columns["Total"].HeaderText = "TOTAL (MT)";
@@ -160,33 +236,76 @@ namespace Enterprise.Forms
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erro: " + ex.Message);
+                MessageBox.Show("Erro ao carregar facturas: " + ex.Message, "Erro",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void BtnConverterCotacao_Click(object sender, EventArgs e)
         {
-            if (cmbCotacao.SelectedItem is not Cotacao cotacao) return;
-            var c = AppDataConnection.GetCotacaoPorId(cotacao.Id);
-            if (c == null) return;
-            cmbCliente.SelectedValue = c.ClienteId;
-            _itens = c.Itens;
-            ActualizarGrelhaItens();
-            MessageBox.Show("Itens da cotação carregados!", "Sucesso",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            try
+            {
+                if (cmbCotacao?.SelectedItem == null)
+                {
+                    MessageBox.Show("Selecione uma cotação para converter!", "Atenção",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var cotacao = (Cotacao)cmbCotacao.SelectedItem;
+
+                var cotacaoCompleta = AppDataConnection.GetCotacaoPorId(cotacao.Id);
+                if (cotacaoCompleta == null)
+                {
+                    MessageBox.Show("Cotação não encontrada!", "Erro",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // Carregar o cliente da cotação
+                if (cotacaoCompleta.ClienteId > 0 && cmbCliente != null && cmbCliente.Items.Count > 0)
+                {
+                    for (int i = 0; i < cmbCliente.Items.Count; i++)
+                    {
+                        var cliente = (Cliente)cmbCliente.Items[i];
+                        if (cliente != null && cliente.Id == cotacaoCompleta.ClienteId)
+                        {
+                            cmbCliente.SelectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+
+                _itens = cotacaoCompleta.Itens ?? new List<ItemDocumento>();
+                ActualizarGrelhaItens();
+
+                MessageBox.Show($"Itens da cotação {cotacaoCompleta.Numero} carregados com sucesso!",
+                    "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erro ao converter cotação: " + ex.Message, "Erro",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void BtnAdicionarItem_Click(object sender, EventArgs e)
         {
-            if (cmbServico.SelectedItem is not Servico s) return;
+            if (cmbServico?.SelectedItem is not Servico s)
+            {
+                MessageBox.Show("Selecione um serviço!", "Atenção",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             _itens.Add(new ItemDocumento
             {
                 ServicoId = s.Id,
                 Descricao = s.Nome,
                 Unidade = s.Unidade,
                 PrecoUnitario = s.PrecoBase,
-                Quantidade = nudQuantidade.Value,
-                Desconto = nudDesconto.Value,
+                Quantidade = nudQuantidade?.Value ?? 1,
+                Desconto = nudDesconto?.Value ?? 0,
                 Servico = s
             });
             ActualizarGrelhaItens();
@@ -194,7 +313,7 @@ namespace Enterprise.Forms
 
         private void BtnRemoverItem_Click(object sender, EventArgs e)
         {
-            if (dgvItens.SelectedRows.Count > 0 &&
+            if (dgvItens?.SelectedRows.Count > 0 &&
                 MessageBox.Show("Remover item?", "Confirmar",
                     MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
@@ -208,6 +327,8 @@ namespace Enterprise.Forms
 
         private void ActualizarGrelhaItens()
         {
+            if (dgvItens == null) return;
+
             dgvItens.DataSource = null;
             dgvItens.DataSource = _itens;
 
@@ -218,16 +339,20 @@ namespace Enterprise.Forms
                     if (dgvItens.Columns.Contains(col))
                         dgvItens.Columns[col].Visible = false;
 
-                if (dgvItens.Columns.Contains("Descricao")) dgvItens.Columns["Descricao"].HeaderText = "DESCRIÇÃO";
-                if (dgvItens.Columns.Contains("Unidade")) dgvItens.Columns["Unidade"].HeaderText = "UN.";
-                if (dgvItens.Columns.Contains("Quantidade")) dgvItens.Columns["Quantidade"].HeaderText = "QTD";
+                if (dgvItens.Columns.Contains("Descricao"))
+                    dgvItens.Columns["Descricao"].HeaderText = "DESCRIÇÃO";
+                if (dgvItens.Columns.Contains("Unidade"))
+                    dgvItens.Columns["Unidade"].HeaderText = "UN.";
+                if (dgvItens.Columns.Contains("Quantidade"))
+                    dgvItens.Columns["Quantidade"].HeaderText = "QTD";
                 if (dgvItens.Columns.Contains("PrecoUnitario"))
                 {
                     dgvItens.Columns["PrecoUnitario"].HeaderText = "PREÇO UNIT. (MT)";
                     dgvItens.Columns["PrecoUnitario"].DefaultCellStyle.Format = "N2";
                     dgvItens.Columns["PrecoUnitario"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
                 }
-                if (dgvItens.Columns.Contains("Desconto")) dgvItens.Columns["Desconto"].HeaderText = "DESC. %";
+                if (dgvItens.Columns.Contains("Desconto"))
+                    dgvItens.Columns["Desconto"].HeaderText = "DESC. %";
                 if (dgvItens.Columns.Contains("Total"))
                 {
                     dgvItens.Columns["Total"].HeaderText = "TOTAL (MT)";
@@ -241,6 +366,8 @@ namespace Enterprise.Forms
 
         private void CalcularTotais()
         {
+            if (lblSubTotal == null || lblIva == null || lblTotal == null) return;
+
             decimal sub = 0;
             foreach (var i in _itens) sub += i.Total;
             decimal vIva = sub * (IVA_PERCENTAGEM / 100);
@@ -253,29 +380,35 @@ namespace Enterprise.Forms
 
         private void BtnSalvar_Click(object sender, EventArgs e)
         {
-            if (cmbCliente.SelectedItem == null)
-            { MessageBox.Show("Seleccione um cliente!", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            if (cmbCliente?.SelectedItem == null)
+            {
+                MessageBox.Show("Selecione um cliente!", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             if (_itens.Count == 0)
-            { MessageBox.Show("Adicione pelo menos um serviço!", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            {
+                MessageBox.Show("Adicione pelo menos um serviço!", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
             try
             {
                 var f = new Factura
                 {
                     Id = _facturaActual?.Id ?? 0,
-                    Numero = txtNumero.Text,
+                    Numero = txtNumero?.Text ?? "",
                     ClienteId = (int)cmbCliente.SelectedValue!,
-                    Data = dtpData.Value,
-                    DataVencimento = dtpData.Value.AddDays(30),
-                    LocalObra = txtLocalObra.Text.Trim(),
-                    Observacoes = txtObservacoes.Text.Trim(),
+                    Data = dtpData?.Value ?? DateTime.Now,
+                    DataVencimento = (dtpData?.Value ?? DateTime.Now).AddDays(30),
+                    LocalObra = txtLocalObra?.Text.Trim() ?? "",
+                    Observacoes = txtObservacoes?.Text.Trim() ?? "",
                     Iva = IVA_PERCENTAGEM,
-                    Estado = cmbEstado.Text,
                     Itens = _itens
                 };
 
                 AppDataConnection.SalvarFactura(f);
-                MessageBox.Show($"Factura {f.Numero} guardada!", "Sucesso",
+                MessageBox.Show($"Factura {f.Numero} guardada com sucesso!", "Sucesso",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                 CarregarFacturas();
@@ -283,7 +416,7 @@ namespace Enterprise.Forms
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erro: " + ex.Message, "Erro",
+                MessageBox.Show("Erro ao salvar: " + ex.Message, "Erro",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -291,88 +424,120 @@ namespace Enterprise.Forms
         private void BtnImprimir_Click(object sender, EventArgs e)
         {
             if (_facturaActual == null)
-            { MessageBox.Show("Salve a factura primeiro!", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            {
+                MessageBox.Show("Salve a factura primeiro!", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             try
             {
                 var emp = AppDataConnection.GetEmpresa();
-                PdfGenerator.GerarFactura(_facturaActual, emp!);
+                if (emp != null)
+                    PdfGenerator.GerarFactura(_facturaActual, emp);
+                MessageBox.Show("PDF gerado com sucesso!", "Sucesso",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
-            catch (Exception ex) { MessageBox.Show("Erro ao gerar PDF: " + ex.Message); }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erro ao gerar PDF: " + ex.Message, "Erro",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void LimparFormulario()
         {
             _itens.Clear();
             _facturaActual = null;
-            txtNumero.Text = AppDataConnection.GerarNumero("facturas", "FAT");
-            txtLocalObra.Clear();
-            txtObservacoes.Clear();
-            dtpData.Value = DateTime.Now;
-            cmbEstado.SelectedIndex = 0;
+            if (txtNumero != null)
+                txtNumero.Text = AppDataConnection.GerarNumero("facturas", "FAT");
+            if (txtLocalObra != null)
+                txtLocalObra.Clear();
+            if (txtObservacoes != null)
+                txtObservacoes.Clear();
+            if (dtpData != null)
+                dtpData.Value = DateTime.Now;
             ActualizarGrelhaItens();
         }
 
         private void dgvHistorico_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.RowIndex < 0) return;
+            if (e.RowIndex < 0 || dgvHistorico == null) return;
+
             _facturaActual = dgvHistorico.Rows[e.RowIndex].DataBoundItem as Factura;
             if (_facturaActual != null)
             {
-                txtNumero.Text = _facturaActual.Numero;
-                txtLocalObra.Text = _facturaActual.LocalObra ?? "";
-                txtObservacoes.Text = _facturaActual.Observacoes ?? "";
-                dtpData.Value = _facturaActual.Data;
-                cmbEstado.Text = _facturaActual.Estado;
-                _itens = _facturaActual.Itens;
+                if (txtNumero != null)
+                    txtNumero.Text = _facturaActual.Numero;
+                if (txtLocalObra != null)
+                    txtLocalObra.Text = _facturaActual.LocalObra ?? "";
+                if (txtObservacoes != null)
+                    txtObservacoes.Text = _facturaActual.Observacoes ?? "";
+                if (dtpData != null)
+                    dtpData.Value = _facturaActual.Data;
+                _itens = _facturaActual.Itens ?? new List<ItemDocumento>();
                 ActualizarGrelhaItens();
             }
         }
 
         private void cmbServico_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (cmbServico.SelectedItem is Servico s)
+            if (_isLoading) return;
+
+            if (cmbServico?.SelectedItem is Servico s && txtPrecoItem != null)
                 txtPrecoItem.Text = s.PrecoBase.ToString("N2");
         }
 
         // ═══════════════════════════════════════════════════════════
-        // APLICAR ESTILOS CUSTOMIZADOS (chamado após InitializeComponent)
+        // APLICAR ESTILOS CUSTOMIZADOS
         // ═══════════════════════════════════════════════════════════
         private void AplicarEstilosCustomizados()
         {
-            // Formulário
-            this.BackColor = COR_FUNDO_FORM;
-            this.Font = new Font("Segoe UI", 11);
+            if (this != null)
+                this.BackColor = COR_FUNDO_FORM;
 
-            // Cores dos botões
-            btnSalvar.FillColor = COR_SUCESSO;
-            btnSalvar.ForeColor = Color.White;
-            btnSalvar.Font = new Font("Segoe UI Semibold", 10);
+            if (btnSalvar != null)
+            {
+                btnSalvar.FillColor = COR_SUCESSO;
+                btnSalvar.ForeColor = Color.White;
+                btnSalvar.Font = new Font("Segoe UI Semibold", 10);
+            }
 
-            btnImprimir.FillColor = COR_ALERTA;
-            btnImprimir.ForeColor = Color.White;
-            btnImprimir.Font = new Font("Segoe UI Semibold", 10);
+            if (btnImprimir != null)
+            {
+                btnImprimir.FillColor = COR_ALERTA;
+                btnImprimir.ForeColor = Color.White;
+                btnImprimir.Font = new Font("Segoe UI Semibold", 10);
+            }
 
-            btnAdicionarItem.FillColor = COR_SUCESSO;
-            btnAdicionarItem.ForeColor = Color.White;
-            btnAdicionarItem.Font = new Font("Segoe UI Semibold", 10);
+            if (btnAdicionarItem != null)
+            {
+                btnAdicionarItem.FillColor = COR_SUCESSO;
+                btnAdicionarItem.ForeColor = Color.White;
+                btnAdicionarItem.Font = new Font("Segoe UI Semibold", 10);
+            }
 
-            btnRemoverItem.FillColor = COR_PERIGO;
-            btnRemoverItem.ForeColor = Color.White;
-            btnRemoverItem.Font = new Font("Segoe UI Semibold", 10);
+            if (btnRemoverItem != null)
+            {
+                btnRemoverItem.FillColor = COR_PERIGO;
+                btnRemoverItem.ForeColor = Color.White;
+                btnRemoverItem.Font = new Font("Segoe UI Semibold", 10);
+            }
 
-            btnConverterCotacao.FillColor = COR_PRIMARIA;
-            btnConverterCotacao.ForeColor = Color.White;
-            btnConverterCotacao.Font = new Font("Segoe UI Semibold", 10);
+            if (btnConverterCotacao != null)
+            {
+                btnConverterCotacao.FillColor = COR_PRIMARIA;
+                btnConverterCotacao.ForeColor = Color.White;
+                btnConverterCotacao.Font = new Font("Segoe UI Semibold", 10);
+            }
 
-            // Grid Itens
-            ConfigurarGridEstilo(dgvItens);
-
-            // Grid Histórico
-            ConfigurarGridEstilo(dgvHistorico);
+            if (dgvItens != null) ConfigurarGridEstilo(dgvItens);
+            if (dgvHistorico != null) ConfigurarGridEstilo(dgvHistorico);
         }
 
         private void ConfigurarGridEstilo(Guna2DataGridView dgv)
         {
+            if (dgv == null) return;
+
             dgv.BackgroundColor = COR_FUNDO_FORM;
             dgv.BorderStyle = BorderStyle.None;
             dgv.RowHeadersVisible = false;
@@ -396,21 +561,16 @@ namespace Enterprise.Forms
         }
 
         // ═══════════════════════════════════════════════════════════
-        // INITIALIZE COMPONENT - FORMATO DESIGNER SAFE
+        // INITIALIZE COMPONENT - Mantenha o código existente
         // ═══════════════════════════════════════════════════════════
-        // NOTA: Mantenha este método SIMPLES. Não use métodos helper,
-        // expressões complexas, ou operadores ?? aqui.
-        // O Designer do VS analisa este método e falha com código avançado.
-        // ═══════════════════════════════════════════════════════════
-
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle43 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle44 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle45 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle46 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle47 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle48 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle5 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle6 = new System.Windows.Forms.DataGridViewCellStyle();
             this.txtNumero = new Guna.UI2.WinForms.Guna2TextBox();
             this.txtLocalObra = new Guna.UI2.WinForms.Guna2TextBox();
             this.txtObservacoes = new Guna.UI2.WinForms.Guna2TextBox();
@@ -418,7 +578,6 @@ namespace Enterprise.Forms
             this.cmbCliente = new Guna.UI2.WinForms.Guna2ComboBox();
             this.cmbServico = new Guna.UI2.WinForms.Guna2ComboBox();
             this.cmbCotacao = new Guna.UI2.WinForms.Guna2ComboBox();
-            this.cmbEstado = new Guna.UI2.WinForms.Guna2ComboBox();
             this.dtpData = new Guna.UI2.WinForms.Guna2DateTimePicker();
             this.nudQuantidade = new System.Windows.Forms.NumericUpDown();
             this.nudDesconto = new System.Windows.Forms.NumericUpDown();
@@ -438,7 +597,6 @@ namespace Enterprise.Forms
             this.linhaDados = new Guna.UI2.WinForms.Guna2Separator();
             this.lblNumero = new System.Windows.Forms.Label();
             this.lblData = new System.Windows.Forms.Label();
-            this.lblEstado = new System.Windows.Forms.Label();
             this.lblCliente = new System.Windows.Forms.Label();
             this.lblCotacao = new System.Windows.Forms.Label();
             this.panelItens = new Guna.UI2.WinForms.Guna2Panel();
@@ -459,6 +617,7 @@ namespace Enterprise.Forms
             this.panelHistorico = new Guna.UI2.WinForms.Guna2Panel();
             this.lblTituloHist = new System.Windows.Forms.Label();
             this.linhaHist = new Guna.UI2.WinForms.Guna2Separator();
+            this.bntApagarFactura = new Guna.UI2.WinForms.Guna2Button();
             ((System.ComponentModel.ISupportInitialize)(this.nudQuantidade)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudDesconto)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dgvItens)).BeginInit();
@@ -578,27 +737,6 @@ namespace Enterprise.Forms
             this.cmbCotacao.Size = new System.Drawing.Size(220, 36);
             this.cmbCotacao.TabIndex = 11;
             // 
-            // cmbEstado
-            // 
-            this.cmbEstado.BackColor = System.Drawing.Color.Transparent;
-            this.cmbEstado.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(210)))));
-            this.cmbEstado.BorderRadius = 8;
-            this.cmbEstado.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
-            this.cmbEstado.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cmbEstado.FocusedColor = System.Drawing.Color.Empty;
-            this.cmbEstado.Font = new System.Drawing.Font("Segoe UI", 11F);
-            this.cmbEstado.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(68)))), ((int)(((byte)(88)))), ((int)(((byte)(112)))));
-            this.cmbEstado.ItemHeight = 30;
-            this.cmbEstado.Items.AddRange(new object[] {
-            "Pendente",
-            "Paga",
-            "Parcial",
-            "Cancelada"});
-            this.cmbEstado.Location = new System.Drawing.Point(721, 95);
-            this.cmbEstado.Name = "cmbEstado";
-            this.cmbEstado.Size = new System.Drawing.Size(200, 36);
-            this.cmbEstado.TabIndex = 7;
-            // 
             // dtpData
             // 
             this.dtpData.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(210)))));
@@ -648,25 +786,25 @@ namespace Enterprise.Forms
             // dgvItens
             // 
             this.dgvItens.AllowUserToAddRows = false;
-            dataGridViewCellStyle43.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(255)))));
-            this.dgvItens.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle43;
-            dataGridViewCellStyle44.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle44.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(25)))), ((int)(((byte)(40)))));
-            dataGridViewCellStyle44.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            dataGridViewCellStyle44.ForeColor = System.Drawing.Color.White;
-            dataGridViewCellStyle44.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle44.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle44.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dgvItens.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle44;
+            dataGridViewCellStyle1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(255)))));
+            this.dgvItens.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(25)))), ((int)(((byte)(40)))));
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Segoe UI", 9F);
+            dataGridViewCellStyle2.ForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgvItens.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle2;
             this.dgvItens.ColumnHeadersHeight = 38;
-            dataGridViewCellStyle45.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle45.BackColor = System.Drawing.Color.White;
-            dataGridViewCellStyle45.Font = new System.Drawing.Font("Segoe UI", 9F);
-            dataGridViewCellStyle45.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
-            dataGridViewCellStyle45.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(230)))), ((int)(((byte)(255)))));
-            dataGridViewCellStyle45.SelectionForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(20)))), ((int)(((byte)(40)))));
-            dataGridViewCellStyle45.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.dgvItens.DefaultCellStyle = dataGridViewCellStyle45;
+            dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle3.BackColor = System.Drawing.Color.White;
+            dataGridViewCellStyle3.Font = new System.Drawing.Font("Segoe UI", 9F);
+            dataGridViewCellStyle3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
+            dataGridViewCellStyle3.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(230)))), ((int)(((byte)(255)))));
+            dataGridViewCellStyle3.SelectionForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(20)))), ((int)(((byte)(40)))));
+            dataGridViewCellStyle3.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.dgvItens.DefaultCellStyle = dataGridViewCellStyle3;
             this.dgvItens.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.dgvItens.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(230)))), ((int)(((byte)(230)))));
             this.dgvItens.Location = new System.Drawing.Point(25, 145);
@@ -675,7 +813,7 @@ namespace Enterprise.Forms
             this.dgvItens.ReadOnly = true;
             this.dgvItens.RowHeadersVisible = false;
             this.dgvItens.RowTemplate.Height = 38;
-            this.dgvItens.Size = new System.Drawing.Size(1230, 255);
+            this.dgvItens.Size = new System.Drawing.Size(1284, 255);
             this.dgvItens.TabIndex = 3;
             this.dgvItens.ThemeStyle.AlternatingRowsStyle.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(255)))));
             this.dgvItens.ThemeStyle.AlternatingRowsStyle.Font = null;
@@ -702,25 +840,25 @@ namespace Enterprise.Forms
             // dgvHistorico
             // 
             this.dgvHistorico.AllowUserToAddRows = false;
-            dataGridViewCellStyle46.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(255)))));
-            this.dgvHistorico.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle46;
-            dataGridViewCellStyle47.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle47.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(25)))), ((int)(((byte)(40)))));
-            dataGridViewCellStyle47.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            dataGridViewCellStyle47.ForeColor = System.Drawing.Color.White;
-            dataGridViewCellStyle47.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle47.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle47.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dgvHistorico.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle47;
+            dataGridViewCellStyle4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(255)))));
+            this.dgvHistorico.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle4;
+            dataGridViewCellStyle5.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(25)))), ((int)(((byte)(40)))));
+            dataGridViewCellStyle5.Font = new System.Drawing.Font("Segoe UI", 9F);
+            dataGridViewCellStyle5.ForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle5.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle5.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle5.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgvHistorico.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle5;
             this.dgvHistorico.ColumnHeadersHeight = 38;
-            dataGridViewCellStyle48.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle48.BackColor = System.Drawing.Color.White;
-            dataGridViewCellStyle48.Font = new System.Drawing.Font("Segoe UI", 9F);
-            dataGridViewCellStyle48.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
-            dataGridViewCellStyle48.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(230)))), ((int)(((byte)(255)))));
-            dataGridViewCellStyle48.SelectionForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(20)))), ((int)(((byte)(40)))));
-            dataGridViewCellStyle48.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.dgvHistorico.DefaultCellStyle = dataGridViewCellStyle48;
+            dataGridViewCellStyle6.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle6.BackColor = System.Drawing.Color.White;
+            dataGridViewCellStyle6.Font = new System.Drawing.Font("Segoe UI", 9F);
+            dataGridViewCellStyle6.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(69)))), ((int)(((byte)(94)))));
+            dataGridViewCellStyle6.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(230)))), ((int)(((byte)(255)))));
+            dataGridViewCellStyle6.SelectionForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(20)))), ((int)(((byte)(40)))));
+            dataGridViewCellStyle6.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.dgvHistorico.DefaultCellStyle = dataGridViewCellStyle6;
             this.dgvHistorico.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.dgvHistorico.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(230)))), ((int)(((byte)(230)))));
             this.dgvHistorico.Location = new System.Drawing.Point(25, 60);
@@ -796,7 +934,7 @@ namespace Enterprise.Forms
             this.btnRemoverItem.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(59)))), ((int)(((byte)(48)))));
             this.btnRemoverItem.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
             this.btnRemoverItem.ForeColor = System.Drawing.Color.White;
-            this.btnRemoverItem.Location = new System.Drawing.Point(993, 26);
+            this.btnRemoverItem.Location = new System.Drawing.Point(950, 26);
             this.btnRemoverItem.Name = "btnRemoverItem";
             this.btnRemoverItem.Size = new System.Drawing.Size(115, 34);
             this.btnRemoverItem.TabIndex = 9;
@@ -874,8 +1012,6 @@ namespace Enterprise.Forms
             this.panelDados.Controls.Add(this.txtNumero);
             this.panelDados.Controls.Add(this.lblData);
             this.panelDados.Controls.Add(this.dtpData);
-            this.panelDados.Controls.Add(this.lblEstado);
-            this.panelDados.Controls.Add(this.cmbEstado);
             this.panelDados.Controls.Add(this.lblCliente);
             this.panelDados.Controls.Add(this.cmbCliente);
             this.panelDados.Controls.Add(this.lblCotacao);
@@ -925,16 +1061,6 @@ namespace Enterprise.Forms
             this.lblData.Size = new System.Drawing.Size(220, 18);
             this.lblData.TabIndex = 4;
             this.lblData.Text = "DATA";
-            // 
-            // lblEstado
-            // 
-            this.lblEstado.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.lblEstado.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(120)))));
-            this.lblEstado.Location = new System.Drawing.Point(721, 65);
-            this.lblEstado.Name = "lblEstado";
-            this.lblEstado.Size = new System.Drawing.Size(200, 18);
-            this.lblEstado.TabIndex = 6;
-            this.lblEstado.Text = "ESTADO";
             // 
             // lblCliente
             // 
@@ -994,6 +1120,7 @@ namespace Enterprise.Forms
             this.barraItens.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(224)))), ((int)(((byte)(230)))));
             this.barraItens.BorderRadius = 8;
             this.barraItens.BorderThickness = 1;
+            this.barraItens.Controls.Add(this.bntApagarFactura);
             this.barraItens.Controls.Add(this.lblServicoBarra);
             this.barraItens.Controls.Add(this.cmbServico);
             this.barraItens.Controls.Add(this.lblPrecoBarra);
@@ -1007,7 +1134,7 @@ namespace Enterprise.Forms
             this.barraItens.FillColor = System.Drawing.Color.White;
             this.barraItens.Location = new System.Drawing.Point(25, 60);
             this.barraItens.Name = "barraItens";
-            this.barraItens.Size = new System.Drawing.Size(1230, 79);
+            this.barraItens.Size = new System.Drawing.Size(1284, 79);
             this.barraItens.TabIndex = 2;
             // 
             // lblServicoBarra
@@ -1112,7 +1239,7 @@ namespace Enterprise.Forms
             this.lblIvaTxt.Name = "lblIvaTxt";
             this.lblIvaTxt.Size = new System.Drawing.Size(150, 25);
             this.lblIvaTxt.TabIndex = 2;
-            this.lblIvaTxt.Text = "IVA (17%):";
+            this.lblIvaTxt.Text = "IVA:";
             // 
             // lineSep
             // 
@@ -1164,6 +1291,23 @@ namespace Enterprise.Forms
             this.linhaHist.Size = new System.Drawing.Size(1230, 2);
             this.linhaHist.TabIndex = 1;
             // 
+            // btn Apagar Factura
+            // 
+            this.bntApagarFactura.BorderRadius = 8;
+            this.bntApagarFactura.DisabledState.BorderColor = System.Drawing.Color.DarkGray;
+            this.bntApagarFactura.DisabledState.CustomBorderColor = System.Drawing.Color.DarkGray;
+            this.bntApagarFactura.DisabledState.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(169)))), ((int)(((byte)(169)))), ((int)(((byte)(169)))));
+            this.bntApagarFactura.DisabledState.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(141)))), ((int)(((byte)(141)))), ((int)(((byte)(141)))));
+            this.bntApagarFactura.FillColor = System.Drawing.Color.Red;
+            this.bntApagarFactura.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.bntApagarFactura.ForeColor = System.Drawing.Color.White;
+            this.bntApagarFactura.Location = new System.Drawing.Point(1083, 26);
+            this.bntApagarFactura.Name = "btnApagarFactura";
+            this.bntApagarFactura.Size = new System.Drawing.Size(122, 34);
+            this.bntApagarFactura.TabIndex = 10;
+            this.bntApagarFactura.Text = "Apagar Factura";
+            this.bntApagarFactura.Click += new System.EventHandler(this.btnApagarFactura_Click);
+            // 
             // FormFactura
             // 
             this.BackColor = System.Drawing.Color.White;
@@ -1196,6 +1340,37 @@ namespace Enterprise.Forms
         private void btnAdicionarItem_Click_1(object sender, EventArgs e)
         {
 
+        }
+
+        private void btnApagarFactura_Click(object sender, EventArgs e)
+        {
+            if (dgvHistorico.CurrentRow == null)
+            {
+                MessageBox.Show("Selecione uma factura para apagar!", "Atenção",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var factura = dgvHistorico.CurrentRow.DataBoundItem as Factura;
+            if (factura == null) return;
+
+            if (MessageBox.Show($"Tem certeza que deseja apagar a factura {factura.Numero}?\nEsta ação não pode ser desfeita.",
+                "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                try
+                {
+                    AppDataConnection.ApagarFactura(factura.Id);
+                    MessageBox.Show("Factura apagada com sucesso!", "Sucesso",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    CarregarFacturas();
+                    LimparFormulario();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Erro ao apagar: " + ex.Message, "Erro",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
     }
 }
