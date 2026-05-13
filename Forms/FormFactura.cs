@@ -394,6 +394,7 @@ namespace Enterprise.Forms
 
             try
             {
+                // PRIMEIRO cria o objeto Factura
                 var f = new Factura
                 {
                     Id = _facturaActual?.Id ?? 0,
@@ -407,7 +408,19 @@ namespace Enterprise.Forms
                     Itens = _itens
                 };
 
+                // DEPOIS de criar 'f', pode usar suas propriedades
                 AppDataConnection.SalvarFactura(f);
+
+                AppDataConnection.RegistrarMovimentoFinanceiro(
+                    "Receita",
+                    "Venda",
+                    $"Factura {f.Numero} - {cmbCliente.Text}",
+                    f.Total,        // Agora 'f' existe
+                    f.Data,         // Agora 'f' existe
+                    f.Id,           // Agora 'f' existe
+                    "Factura"
+                );
+
                 MessageBox.Show($"Factura {f.Numero} guardada com sucesso!", "Sucesso",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
 

@@ -11,6 +11,7 @@ namespace Enterprise
         // Componentes do formulário
         private Guna2Panel panelMenu;
         private Guna2Panel panelConteudo;
+        private Guna2Button btnDashboard;
         private Guna2Button btnClientes;
         private Guna2Button btnServicos;
         private Guna2Button btnCotacoes;
@@ -33,6 +34,7 @@ namespace Enterprise
             this.panelConteudo = new Guna.UI2.WinForms.Guna2Panel();
             this.lblTitulo = new System.Windows.Forms.Label();
             this.lblVersao = new System.Windows.Forms.Label();
+            this.btnDashboard = new Guna.UI2.WinForms.Guna2Button();
             this.btnClientes = new Guna.UI2.WinForms.Guna2Button();
             this.btnServicos = new Guna.UI2.WinForms.Guna2Button();
             this.btnCotacoes = new Guna.UI2.WinForms.Guna2Button();
@@ -74,6 +76,20 @@ namespace Enterprise
             this.panelMenu.Controls.Add(separator);
 
             int yPos = 90;
+
+            // ========== BOTÃO DASHBOARD (NOVO) ==========
+            this.btnDashboard = CriarBotaoMenu("📊 Dashboard", yPos, Color.FromArgb(0, 122, 255)); // Destacado em azul
+            this.btnDashboard.Click += BtnDashboard_Click;
+            this.panelMenu.Controls.Add(this.btnDashboard);
+            yPos += 55;
+
+            // Linha separadora após o Dashboard
+            Guna2Separator separator2 = new Guna2Separator();
+            separator2.Location = new System.Drawing.Point(15, yPos);
+            separator2.Size = new System.Drawing.Size(220, 1);
+            separator2.FillColor = System.Drawing.Color.FromArgb(60, 60, 75);
+            this.panelMenu.Controls.Add(separator2);
+            yPos += 15;
 
             // ========== BOTÃO CLIENTES ==========
             this.btnClientes = CriarBotaoMenu("👥 Clientes", yPos);
@@ -139,7 +155,7 @@ namespace Enterprise
 
             // Label de boas-vindas
             Label lblWelcome = new Label();
-            lblWelcome.Text = "Bem-vindo ao Sistema Enterprise\n\nSelecione uma opção no menu lateral para começar.";
+            lblWelcome.Text = "Bem-vindo ao Sistema De Gestão\n\nSelecione uma opção no menu lateral para começar.";
             lblWelcome.Font = new System.Drawing.Font("Segoe UI", 16, System.Drawing.FontStyle.Regular);
             lblWelcome.ForeColor = System.Drawing.Color.FromArgb(80, 80, 100);
             lblWelcome.Location = new System.Drawing.Point(50, 50);
@@ -155,14 +171,14 @@ namespace Enterprise
             this.ResumeLayout(false);
         }
 
-        private Guna2Button CriarBotaoMenu(string texto, int y)
+        private Guna2Button CriarBotaoMenu(string texto, int y, Color? corFundo = null)
         {
             Guna2Button btn = new Guna2Button();
             btn.Text = texto;
             btn.Location = new System.Drawing.Point(15, y);
             btn.Size = new System.Drawing.Size(220, 45);
             btn.BorderRadius = 8;
-            btn.FillColor = System.Drawing.Color.FromArgb(45, 45, 60);
+            btn.FillColor = corFundo ?? System.Drawing.Color.FromArgb(45, 45, 60);
             btn.ForeColor = System.Drawing.Color.White;
             btn.Font = new System.Drawing.Font("Segoe UI", 10, System.Drawing.FontStyle.Regular);
             btn.HoverState.FillColor = System.Drawing.Color.FromArgb(0, 122, 255);
@@ -170,6 +186,14 @@ namespace Enterprise
             btn.ImageAlign = System.Windows.Forms.HorizontalAlignment.Left;
             btn.Padding = new System.Windows.Forms.Padding(15, 0, 0, 0);
             return btn;
+        }
+
+        // ========== EVENTO DO BOTÃO DASHBOARD ==========
+        private void BtnDashboard_Click(object sender, EventArgs e)
+        {
+            var form = new FormDashboard();
+            form.StartPosition = FormStartPosition.CenterScreen;
+            form.ShowDialog(this);
         }
 
         // ========== EVENTOS DOS BOTÕES (JANELAS INDEPENDENTES) ==========

@@ -19,7 +19,7 @@ namespace Enterprise.Data
         // ─────────────────────────────────────────
         // LIGAÇÃO
         // ─────────────────────────────────────────
-        private static SqlConnection GetConnection()
+        public static SqlConnection GetConnection()
         {
             return new SqlConnection(_connectionString);
         }
@@ -751,7 +751,7 @@ namespace Enterprise.Data
                 }
             }
 
-        
+
             return lista;
         }
 
@@ -1202,5 +1202,125 @@ namespace Enterprise.Data
                 }
             }
         }
+
+        public static DashBoardData GetDashboardData(DateTime? dataInicio = null, DateTime? dataFim = null)
+        {
+            var dashboard = new DashBoardData();
+
+            if (!dataInicio.HasValue)
+                dataInicio = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            if (!dataFim.HasValue)
+                dataFim = DateTime.Now;
+
+            using (var conn = GetConnection())
+            {
+                conn.Open();
+
+                // Receitas e Despesas
+                string sql = @"
+            SELECT 
+                ISNULL(SUM(CASE WHEN tipo = 'Receita' THEN valor ELSE 0 END), 0) as Receita,
+                ISNULL(SUM(CASE WHEN tipo = 'Despesa' THEN valor ELSE 0 END), 0) as Despesa,
+                ISNULL(SUM(CASE WHEN tipo = 'Receita' THEN valor ELSE -valor END), 0) as Saldo
+            FROM movimentos_financeiros
+            WHERE data_movimento BETWEEN @dataInicio AND @dataFim";
+
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@dataInicio", dataInicio.Value);
+                    cmd.Parameters.AddWithValue("@dataFim", dataFim.Value);
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            dashboard.ReceitaTotal = reader.GetDecimal(0);
+                            dashboard.DespesaTotal = reader.GetDecimal(1);
+                            dashboard.LucroTotal = dashboard.ReceitaTotal - dashboard.DespesaTotal;
+                            dashboard.SaldoAtual = reader.GetDecimal(2);
+                            dashboard.MargemLucro = dashboard.ReceitaTotal > 0 ?
+                                (dashboard.LucroTotal / dashboard.ReceitaTotal) * 100 : 0;
+                        }
+                    }
+                }
+
+                // Receitas por mês (últimos 6 meses)
+                string sqlReceitasMes = @"
+            SELECT 
+                FORMAT(data_movimento, 'MMM/yy') as Mes,
+                SUM(valor) as Total
+            FROM movimentos_financeiros
+            WHERE tipo = 'Receita'
+                AND data_movimento >= DATEADD(MONTH, -5, GETDATE())
+            GROUP BY FORMAT(data_movimento, 'MMM/yy'), MONTH(data_movimento)
+            ORDER BY MIN(data_movimento)";
+
+                using (var cmd = new SqlCommand(sqlReceitasMes, conn))
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        dashboard.ReceitasPorMes.Add(new DadoGrafico
+                        {
+                            Label = reader.GetString(0),
+                            Valor = reader.GetDecimal(1)
+                        });
+                    }
+                }
+
+                // Despesas por categoria
+                string sqlDespesasCat = @"
+            SELECT TOP 5
+                categoria,
+                SUM(valor) as Total
+            FROM movimentos_financeiros
+            WHERE tipo = 'Despesa'
+                AND data_movimento >= DATEADD(MONTH, -5, GETDATE())
+            GROUP BY categoria
+            ORDER BY Total DESC";
+
+                using (var cmd = new SqlCommand(sqlDespesasCat, conn))
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        dashboard.DespesasPorCategoria.Add(new DadoGrafico
+                        {
+                            Label = reader.GetString(0),
+                            Valor = reader.GetDecimal(1)
+                        });
+                    }
+                }
+            }
+
+            return dashboard;
+        }
+
+        // Registrar movimento financeiro automaticamente
+        public static void RegistrarMovimentoFinanceiro(string tipo, string categoria, string descricao,
+            decimal valor, DateTime data, int? documentoId = null, string? documentoTipo = null)
+        {
+            using (var conn = GetConnection())
+            {
+                conn.Open();
+                string sql = @"INSERT INTO movimentos_financeiros 
+            (tipo, categoria, descricao, valor, data_movimento, documento_id, documento_tipo, criado_em)
+            VALUES (@tipo, @categoria, @descricao, @valor, @data, @docId, @docTipo, @criadoEm)";
+
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@tipo", tipo);
+                    cmd.Parameters.AddWithValue("@categoria", categoria);
+                    cmd.Parameters.AddWithValue("@descricao", descricao);
+                    cmd.Parameters.AddWithValue("@valor", valor);
+                    cmd.Parameters.AddWithValue("@data", data);
+                    cmd.Parameters.AddWithValue("@docId", documentoId ?? (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@docTipo", documentoTipo ?? (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@criadoEm", DateTime.Now);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
     }
+
 }
